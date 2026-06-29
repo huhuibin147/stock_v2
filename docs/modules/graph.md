@@ -23,10 +23,8 @@ Layer 1: 能源电力层  电力设备 | 新能源 | 储能 | 特高压
 class NodeType(str, Enum):
     STOCK = "stock"          # 个股
     CONCEPT = "concept"      # 概念
-    INDUSTRY = "industry"    # 行业
-    LAYER = "layer"          # 层级
-    EVENT = "event"          # 事件
-    PERSON = "person"        # 人物
+    INDUSTRY = "industry"    # 行业（产业链节点）
+    LAYER = "layer"          # 层级（五层架构）
 ```
 
 ### 边类型
@@ -153,9 +151,8 @@ class StockRelationBuilder:
 ## 前端可视化
 
 ### 技术选型
-- **产业链图谱**: D3.js force-directed layout
-- **概念网络**: D3.js + 自定义力导向参数
-- **个股关联**: ECharts graph（快速实现）
+- **MVP**: ECharts graph（快速实现，满足基本需求）
+- **Phase 3+**: D3.js force-directed layout（更灵活的交互）
 
 ### 可视化规范
 ```

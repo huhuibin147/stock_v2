@@ -17,31 +17,38 @@
 
 ## 实体识别
 
-### 实体类型
-| 类型 | 示例 | 提取方式 |
-|------|------|----------|
-| STOCK | 贵州茅台(600519) | 正则匹配股票代码/名称 |
-| INDUSTRY | 半导体、新能源 | 行业词典匹配 |
-| CONCEPT | ChatGPT、HBM、CPO | 概念词典匹配 |
-| PERSON | 黄仁勋、任正非 | 人名词典+NER |
-| POLICY | 《新一代AI发展规划》 | 正则+规则 |
-| COMPANY | 英伟达、台积电 | 公司词典匹配 |
+### 实体类型（MVP聚焦股票和概念）
+| 类型 | 示例 | 提取方式 | 优先级 |
+|------|------|----------|--------|
+| STOCK | 600519、贵州茅台 | 正则匹配6位代码 + 股票名称词典 | P0 |
+| CONCEPT | 半导体、HBM、CPO | 概念词典匹配 | P1 |
+| COMPANY | 英伟达、台积电 | 公司词典匹配（非上市公司） | P2 | |
 
-### 实现方案
+### 实现方案（MVP轻量方案，不依赖大模型）
 ```python
 class EntityExtractor:
     def __init__(self):
-        self.stock_dict = load_stock_dict()     # 股票代码/名称映射
-        self.concept_dict = load_concept_dict()  # 概念词典
-        self.nlp = spacy.load("zh_core_web_trf") # 预训练NER
+        self.stock_dict = load_stock_dict()      # {code: name, name: code} 双向映射
+        self.concept_dict = load_concept_dict()   # 概念术语+同义词
 
     async def extract(self, text: str) -> list[Entity]:
         entities = []
-        # 1. 正则匹配股票代码 (6位数字)
-        # 2. 词典匹配股票名称、概念、行业
-        # 3. NER提取人名、机构名
-        # 4. 去重合并，计算置信度
-        return entities
+        # 1. 正则匹配6位股票代码: [036]\d{5}
+        for code in re.findall(r'[036]\d{5}', text):
+            if code in self.stock_dict:
+                entities.append(Entity(type="stock", code=code, name=self.stock_dict[code]))
+
+        # 2. 股票名称匹配（按名称长度降序，避免短名误匹配）
+        for name, code in sorted(self.stock_name_map, key=lambda x: -len(x[0])):
+            if name in text:
+                entities.append(Entity(type="stock", code=code, name=name))
+
+        # 3. 概念词典匹配
+        for concept in self.concept_dict:
+            if concept in text:
+                entities.append(Entity(type="concept", name=concept))
+
+        return deduplicate(entities)
 ```
 
 ## 情感分析

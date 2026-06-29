@@ -37,11 +37,11 @@
 | 新浪财经 | 新闻 | API | 10分钟 |
 | 证券时报 | 新闻 | RSS/网页 | 15分钟 |
 
-### 第三优先级（数据）
+### 第三优先级（基础数据）
 | 来源 | 类型 | 采集方式 | 频率 |
 |------|------|----------|------|
-| Tushare | 行情/财务 | API | 按需 |
-| AKShare | 行情/板块 | API | 按需 |
+| AKShare | 股票列表/概念板块/行情 | Python库调用（免费） | 每日/每周 |
+| 东方财富 | 行情/资金流 | API爬取 | 按需 |
 
 ## 采集器架构
 
@@ -99,23 +99,26 @@ class BaseCollector(ABC):
         return filtered
 
     def _calc_importance(self, item: RawNews) -> float:
-        """计算重要度分数 0~1，低于阈值直接丢弃"""
+        """计算重要度分数 0~1，低于阈值(0.5)直接丢弃"""
         score = 0.0
         title = item.title or ""
 
-        # 涉及上市公司（有股票代码/名称）+0.3
-        if contains_stock_entity(title):
+        # 涉及上市公司（标题含6位股票代码或已知公司名称）+0.3
+        if re.search(r'[036]\d{5}', title) or self._match_stock_name(title):
             score += 0.3
 
         # 涉及重大事件关键词 +0.3
-        if contains_event_keyword(title):  # 并购、重组、业绩、增持、减持、涨停...
+        EVENT_KEYWORDS = {"并购", "重组", "收购", "业绩", "预增", "预减", "亏损",
+                          "增持", "减持", "回购", "涨停", "跌停", "处罚", "退市",
+                          "合同", "中标", "专利", "股权激励", "分红"}
+        if any(kw in title for kw in EVENT_KEYWORDS):
             score += 0.3
 
         # 来源权重：公告 > 新闻 > 社交
         source_weight = {"announcement": 0.2, "policy": 0.2, "news": 0.1, "social": 0.05}
         score += source_weight.get(item.category, 0.05)
 
-        # 标题长度过短（一句话快讯）可能无深度，降权
+        # 标题过短降权
         if len(title) < 10:
             score -= 0.1
 
@@ -163,20 +166,20 @@ class BaseCollector(ABC):
 
 ## 去重策略
 
-1. **URL去重**: 相同URL直接跳过
-2. **Source ID去重**: 同一来源的source_id唯一
-3. **标题相似度**: 编辑距离 > 0.9 视为重复
-4. **Redis Bloom Filter**: 高效布隆过滤器预判
+1. **DB唯一约束**: `news(source, source_id)` UNIQUE索引，插入时自动去重
+2. **内存集合**: 启动时加载已有source_id到内存set，O(1)判断
+3. **标题相似度**: 编辑距离 > 0.9 视为重复（内存中处理）
 
 ## 调度机制
 
-```
-Celery Beat
-├── collect_eastmoney    */5 * * * *
-├── collect_cninfo      */10 * * * *
-├── collect_xueqiu      */10 * * * *
-├── collect_ths          */10 * * * *
-└── collect_market_data  0 16 * * 1-5  # 收盘后
+APScheduler 进程内调度，无需单独worker：
+
+```python
+# app/scheduler.py
+scheduler = AsyncIOScheduler()
+scheduler.add_job(collect_eastmoney, "interval", minutes=5)
+scheduler.add_job(collect_cninfo, "interval", minutes=10)
+scheduler.add_job(cleanup_expired, "cron", hour=3)  # 凌晨3点清理过期数据
 ```
 
 ## 反爬策略
