@@ -161,7 +161,7 @@ CREATE VIRTUAL TABLE news_fts USING fts5(
 python -m app.main
 
 # 这条命令同时启动：
-# - FastAPI web服务 (端口8000)
+# - FastAPI web服务 (端口38080)
 # - APScheduler 定时采集任务
 # - SQLite自动创建（首次运行）
 ```

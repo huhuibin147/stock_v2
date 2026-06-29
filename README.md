@@ -47,8 +47,8 @@
 ```
 
 启动后访问：
-- 前端: http://localhost:5173
-- API文档: http://localhost:8000/docs
+- 前端: http://localhost:35173
+- API文档: http://localhost:38080/docs
 
 ## 文档索引
 
