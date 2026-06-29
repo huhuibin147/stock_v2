@@ -26,9 +26,13 @@ async def _run_collect():
         raw_items = await collector.collect(max_pages=3)
 
         for item in raw_items:
-            # 实体提取
+            # 实体提取（从标题+摘要）
             entities = await extractor.extract(item.title + " " + (item.content or ""))
-            stock_codes = [e.code for e in entities if e.type == "stock" and e.code]
+
+            # 合并：采集器自带的股票代码 + NLP提取的
+            api_codes = item.extra.get("stock_codes", [])
+            nlp_codes = [e.code for e in entities if e.type == "stock" and e.code]
+            stock_codes = list(set(api_codes + nlp_codes))
 
             # 情感分析
             sentiment = analyze_sentiment(item.title)

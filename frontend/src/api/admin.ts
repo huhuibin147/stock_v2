@@ -89,3 +89,15 @@ export function triggerImportConceptStocks() {
 export function triggerCollectEastmoney() {
   return post("/api/v1/admin/collect/eastmoney");
 }
+
+export function triggerCollectTHS() {
+  return post("/api/v1/admin/collect/ths");
+}
+
+export function triggerCollectSina() {
+  return post("/api/v1/admin/collect/sina");
+}
+
+export function triggerCollectAll() {
+  return post("/api/v1/admin/collect/all");
+}

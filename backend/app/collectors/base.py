@@ -91,8 +91,9 @@ class BaseCollector(ABC):
         score = 0.0
         title = item.title or ""
 
-        # 涉及上市公司
-        if re.search(r"[036]\d{5}", title):
+        # 涉及上市公司（标题中的代码 或 API自带的股票代码）
+        has_stock = bool(re.search(r"[036]\d{5}", title)) or bool(item.extra.get("stock_codes"))
+        if has_stock:
             score += 0.3
 
         # 重大事件关键词

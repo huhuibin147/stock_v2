@@ -1,5 +1,3 @@
-import json
-import re
 from datetime import datetime
 
 import structlog
@@ -8,80 +6,85 @@ from app.collectors.base import BaseCollector, RawNews
 
 logger = structlog.get_logger()
 
-# 东方财富资讯API
-NEWS_API = "https://np-listapi.eastmoney.com/comm/web/getNewsByColumns"
-FLASH_API = "https://np-anotice-stock.eastmoney.com/api/security/ann"
+# 东方财富7x24快讯API（直接HTTP，不依赖akshare）
+FAST_NEWS_API = "https://np-weblist.eastmoney.com/comm/web/getFastNewsList"
 
-# 栏目ID
-COLUMN_IDS = "245,250"  # 要闻, 公司
+# fastColumn: 102=7x24快讯
+# 用sortEnd翻页，pageSize控制每页数量
 
 
 class EastMoneyCollector(BaseCollector):
     source = "eastmoney"
     base_url = "https://www.eastmoney.com"
-    rate_limit = 2.0
+    rate_limit = 1.5
 
     async def fetch_list(self, page: int) -> list[RawNews]:
-        items = []
-
-        # 快讯/新闻
-        news_items = await self._fetch_news(page)
-        items.extend(news_items)
-
-        return items
-
-    async def _fetch_news(self, page: int) -> list[RawNews]:
-        """采集东方财富新闻"""
+        """采集7x24快讯"""
         client = await self._get_client()
         items = []
 
         try:
-            resp = await client.get(
-                NEWS_API,
-                params={
-                    "client": "web",
-                    "biz": "web_news_col",
-                    "column": COLUMN_IDS,
-                    "order": "1",
-                    "needInteractData": "0",
-                    "page_index": page,
-                    "page_size": "50",
-                },
-            )
+            params = {
+                "client": "web",
+                "biz": "web_724",
+                "fastColumn": "102",
+                "sortEnd": self._sort_end if hasattr(self, "_sort_end") and page > 1 else "",
+                "pageSize": "50",
+                "req_trace": str(int(datetime.now().timestamp() * 1000)),
+            }
+
+            resp = await client.get(FAST_NEWS_API, params=params)
             data = resp.json()
 
-            news_list = data.get("data", {}).get("list", [])
+            if data.get("code") != "1":
+                logger.warning("eastmoney_api_error", code=data.get("code"), msg=data.get("message"))
+                return []
+
+            news_list = data.get("data", {}).get("fastNewsList", [])
+            self._sort_end = data.get("data", {}).get("sortEnd", "")
+
             for item in news_list:
                 title = item.get("title", "").strip()
+                summary = item.get("summary", "").strip()
                 if not title:
                     continue
 
                 # 解析时间
                 pub_time = None
-                if item.get("showTime"):
+                show_time = item.get("showTime", "")
+                if show_time:
                     try:
-                        pub_time = datetime.strptime(item["showTime"], "%Y-%m-%d %H:%M:%S")
+                        pub_time = datetime.strptime(show_time, "%Y-%m-%d %H:%M:%S")
                     except ValueError:
                         pass
 
-                news_id = str(item.get("art_uniqueUrl", "").split("/")[-1].replace(".html", ""))
-                if not news_id:
-                    news_id = str(item.get("art_code", ""))
+                # 解析关联股票代码
+                stock_codes = []
+                for code in item.get("stockList", []):
+                    if "." in code:
+                        parts = code.split(".")
+                        if len(parts) == 2:
+                            market_id, symbol = parts
+                            # 只保留A股: market 0=SZ, 1=SH
+                            if market_id in ("0", "1") and symbol.isdigit() and len(symbol) == 6:
+                                stock_codes.append(symbol)
+
+                source_id = item.get("code", "")
+                if not source_id:
+                    continue
 
                 items.append(RawNews(
                     source="eastmoney",
-                    source_id=news_id or str(item.get("art_code", page * 100 + len(items))),
+                    source_id=source_id,
                     title=title,
-                    content=item.get("content", ""),
-                    url=item.get("art_uniqueUrl", ""),
+                    content=summary,
+                    url=f"https://finance.eastmoney.com/a/{source_id}.html",
                     published_at=pub_time,
                     category="news",
+                    extra={"stock_codes": stock_codes},
                 ))
 
         except Exception as e:
             logger.error("eastmoney_fetch_failed", page=page, error=str(e))
 
         return items
-
-    async def close(self):
-        await super().close()

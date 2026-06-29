@@ -24,25 +24,42 @@
           {{ loading.stocks ? '导入中...' : '立即导入' }}
         </button>
       </div>
-      <div class="action-card">
+      <div class="action-card disabled">
         <div class="action-title">概念板块导入</div>
         <div class="action-desc">从AKShare导入概念板块列表</div>
-        <button class="btn" @click="doAction('concepts')" :disabled="loading.concepts">
-          {{ loading.concepts ? '导入中...' : '立即导入' }}
-        </button>
+        <div class="unavailable">⚠ 依赖东方财富API，当前不可用</div>
       </div>
-      <div class="action-card">
+      <div class="action-card disabled">
         <div class="action-title">概念成分股关联</div>
-        <div class="action-desc">导入各概念板块的成分股（耗时较长）</div>
-        <button class="btn" @click="doAction('concept-stocks')" :disabled="loading.conceptStocks">
-          {{ loading.conceptStocks ? '导入中...' : '立即导入' }}
-        </button>
+        <div class="action-desc">导入各概念板块的成分股</div>
+        <div class="unavailable">⚠ 依赖东方财富API，当前不可用</div>
       </div>
       <div class="action-card">
-        <div class="action-title">东方财富资讯采集</div>
-        <div class="action-desc">采集最新财经新闻，自动过滤+分析+入库</div>
+        <div class="action-title">东方财富快讯</div>
+        <div class="action-desc">7x24快讯，含股票代码</div>
         <button class="btn btn-primary" @click="doAction('eastmoney')" :disabled="loading.eastmoney">
           {{ loading.eastmoney ? '采集中...' : '立即采集' }}
+        </button>
+      </div>
+      <div class="action-card">
+        <div class="action-title">同花顺资讯</div>
+        <div class="action-desc">公告+新闻，自带股票关联</div>
+        <button class="btn btn-primary" @click="doAction('ths')" :disabled="loading.ths">
+          {{ loading.ths ? '采集中...' : '立即采集' }}
+        </button>
+      </div>
+      <div class="action-card">
+        <div class="action-title">新浪财经</div>
+        <div class="action-desc">财经要闻，覆盖面广</div>
+        <button class="btn btn-primary" @click="doAction('sina')" :disabled="loading.sina">
+          {{ loading.sina ? '采集中...' : '立即采集' }}
+        </button>
+      </div>
+      <div class="action-card highlight">
+        <div class="action-title">一键全部采集</div>
+        <div class="action-desc">依次采集全部数据源</div>
+        <button class="btn btn-primary" @click="doAction('all')" :disabled="loading.all">
+          {{ loading.all ? '采集中...' : '全部采集' }}
         </button>
       </div>
     </div>
@@ -74,7 +91,8 @@
 import { ref, reactive, onMounted } from "vue";
 import {
   getSystemStatus, getAdminLogs,
-  triggerImportStocks, triggerImportConcepts, triggerImportConceptStocks, triggerCollectEastmoney,
+  triggerImportStocks, triggerImportConcepts, triggerImportConceptStocks,
+  triggerCollectEastmoney, triggerCollectTHS, triggerCollectSina, triggerCollectAll,
 } from "../../api/admin";
 import type { SystemStatus, AdminLog } from "../../api/admin";
 
@@ -85,6 +103,9 @@ const loading = reactive({
   concepts: false,
   conceptStocks: false,
   eastmoney: false,
+  ths: false,
+  sina: false,
+  all: false,
 });
 
 const tableLabels: Record<string, string> = {
@@ -101,6 +122,8 @@ const actionLabels: Record<string, string> = {
   import_concepts: "概念导入",
   import_concept_stocks: "成分股关联",
   collect_eastmoney: "东方财富采集",
+  collect_ths: "同花顺采集",
+  collect_sina: "新浪采集",
 };
 
 function statusBadge(s: string) {
@@ -124,6 +147,9 @@ async function doAction(type: string) {
       case "concepts": res = await triggerImportConcepts(); break;
       case "concept-stocks": res = await triggerImportConceptStocks(); break;
       case "eastmoney": res = await triggerCollectEastmoney(); break;
+      case "ths": res = await triggerCollectTHS(); break;
+      case "sina": res = await triggerCollectSina(); break;
+      case "all": res = await triggerCollectAll(); break;
     }
     if (res?.code === 0) {
       // 等一下再刷新日志
@@ -182,6 +208,9 @@ onMounted(load);
 }
 .action-title { font-weight: 600; margin-bottom: 4px; }
 .action-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
+.action-card.disabled { opacity: 0.6; background: var(--bg-secondary); }
+.action-card.highlight { border-color: var(--primary); background: var(--primary-light); }
+.unavailable { font-size: 12px; color: var(--orange); }
 
 .btn {
   padding: 6px 16px;

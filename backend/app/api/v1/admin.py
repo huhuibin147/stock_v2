@@ -80,6 +80,27 @@ async def collect_eastmoney(background_tasks: BackgroundTasks):
     return ok({"message": "东方财富采集任务已触发，请稍后查看日志"})
 
 
+@router.post("/collect/ths")
+async def collect_ths(background_tasks: BackgroundTasks):
+    """触发同花顺资讯采集"""
+    background_tasks.add_task(_run_collect_ths)
+    return ok({"message": "同花顺采集任务已触发，请稍后查看日志"})
+
+
+@router.post("/collect/sina")
+async def collect_sina(background_tasks: BackgroundTasks):
+    """触发新浪财经资讯采集"""
+    background_tasks.add_task(_run_collect_sina)
+    return ok({"message": "新浪财经采集任务已触发，请稍后查看日志"})
+
+
+@router.post("/collect/all")
+async def collect_all(background_tasks: BackgroundTasks):
+    """触发全部采集"""
+    background_tasks.add_task(_run_collect_all)
+    return ok({"message": "全部采集任务已触发，请稍后查看日志"})
+
+
 # ── 后台任务 ──
 
 async def _run_import_stocks():
@@ -112,11 +133,11 @@ async def _run_import_concept_stocks():
         await admin_service.log_action("import_concept_stocks", f"导入失败: {e}", "failed")
 
 
-async def _run_collect_eastmoney():
+async def _run_collect_with(collector, action_name: str, max_pages: int = 3):
+    """通用采集流程"""
     try:
-        await admin_service.log_action("collect_eastmoney", "开始采集", "running")
+        await admin_service.log_action(action_name, "开始采集", "running")
 
-        from app.collectors.eastmoney import EastMoneyCollector
         from app.analyzers.entity_extractor import EntityExtractor
         from app.analyzers.sentiment import analyze_sentiment
         from app.analyzers.event_detector import detect_events
@@ -124,14 +145,14 @@ async def _run_collect_eastmoney():
         from app.services.news_service import save_news
 
         extractor = EntityExtractor()
-        collector = EastMoneyCollector()
-
-        raw_items = await collector.collect(max_pages=3)
+        raw_items = await collector.collect(max_pages=max_pages)
         saved = 0
 
         for item in raw_items:
             entities = await extractor.extract(item.title + " " + (item.content or ""))
-            stock_codes = [e.code for e in entities if e.type == "stock" and e.code]
+            api_codes = item.extra.get("stock_codes", [])
+            nlp_codes = [e.code for e in entities if e.type == "stock" and e.code]
+            stock_codes = list(set(api_codes + nlp_codes))
             sentiment = analyze_sentiment(item.title)
             events = detect_events(item.title)
             ai_result = await summarize(item.title, item.content, item.source)
@@ -159,7 +180,32 @@ async def _run_collect_eastmoney():
 
         await collector.close()
         detail = f"采集完成: 原始{len(raw_items)}条, 入库{saved}条"
-        await admin_service.log_action("collect_eastmoney", detail, "success")
+        await admin_service.log_action(action_name, detail, "success")
 
     except Exception as e:
-        await admin_service.log_action("collect_eastmoney", f"采集失败: {e}", "failed")
+        await admin_service.log_action(action_name, f"采集失败: {e}", "failed")
+
+
+async def _run_collect_eastmoney():
+    from app.collectors.eastmoney import EastMoneyCollector
+    await _run_collect_with(EastMoneyCollector(), "collect_eastmoney")
+
+
+async def _run_collect_ths():
+    from app.collectors.ths import THSCollector
+    await _run_collect_with(THSCollector(), "collect_ths")
+
+
+async def _run_collect_sina():
+    from app.collectors.sina import SinaCollector
+    await _run_collect_with(SinaCollector(), "collect_sina")
+
+
+async def _run_collect_all():
+    """全部源采集"""
+    from app.collectors.eastmoney import EastMoneyCollector
+    from app.collectors.ths import THSCollector
+    from app.collectors.sina import SinaCollector
+
+    for name, cls in [("collect_eastmoney", EastMoneyCollector), ("collect_ths", THSCollector), ("collect_sina", SinaCollector)]:
+        await _run_collect_with(cls(), name, max_pages=2)
