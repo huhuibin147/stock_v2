@@ -32,3 +32,4 @@ Thumbs.db
 deploy/config.yaml
 app.log
 app.pid
+nginx.conf

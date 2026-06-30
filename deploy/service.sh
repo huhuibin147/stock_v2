@@ -29,13 +29,29 @@ start() {
 
     echo "启动 Stock V2..."
     cd "$BACKEND_DIR"
-    nohup .venv/bin/python -m app.main > "$LOG_FILE" 2>&1 &
-    echo $! > "$PID_FILE"
+
+    # 确保 venv 存在
+    if [ -d ".venv" ]; then
+        VENV_DIR=".venv"
+    elif [ -d "venv" ]; then
+        VENV_DIR="venv"
+    else
+        echo "错误: 虚拟环境不存在，请先运行部署脚本"
+        return 1
+    fi
+
+    nohup $VENV_DIR/bin/python -m app.main > "$LOG_FILE" 2>&1 &
+    local pid=$!
+    echo $pid > "$PID_FILE"
 
     # 等待端口就绪
-    for i in $(seq 1 15); do
-        if lsof -ti :$PORT >/dev/null 2>&1; then
-            echo "启动成功 (PID: $(get_pid))"
+    for i in $(seq 1 20); do
+        if ! kill -0 $pid 2>/dev/null; then
+            echo "启动失败，进程已退出，请查看日志: $LOG_FILE"
+            return 1
+        fi
+        if ss -tlnp 2>/dev/null | grep -q ":$PORT " || netstat -tlnp 2>/dev/null | grep -q ":$PORT "; then
+            echo "启动成功 (PID: $pid)"
             return 0
         fi
         sleep 1

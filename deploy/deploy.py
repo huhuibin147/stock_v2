@@ -113,22 +113,27 @@ def deploy(config, archive):
         f"mkdir -p {remote_dir}",
         f"tar xzf {remote_tmp} -C {remote_dir} --strip-components=1",
         f"rm -f {remote_tmp}",
-        # 创建虚拟环境并安装依赖
-        f"cd {remote_dir}/backend && python3 -m venv venv 2>/dev/null || true",
-        f"cd {remote_dir}/backend && venv/bin/pip install -r requirements.txt -q",
-        # 创建数据目录
         f"mkdir -p {remote_dir}/data {remote_dir}/logs",
+        # 创建虚拟环境并安装依赖（合并为一条，cd 不能跨命令）
+        f"cd {remote_dir}/backend && python3 -m venv .venv && .venv/bin/pip install --upgrade pip -q && .venv/bin/pip install -r requirements.txt -q",
+        # nginx 配置：复制 snippet，需手动加入 itb.conf
+        f"cp {remote_dir}/deploy/nginx.conf /etc/nginx/conf.d/stock_v2.conf",
         # 重启服务
+        f"chmod +x {remote_dir}/deploy/service.sh",
         f"bash {remote_dir}/deploy/service.sh restart",
     ]
 
     for cmd in commands:
         stdin, stdout, stderr = ssh.exec_command(cmd)
         exit_code = stdout.channel.recv_exit_status()
+        out = stdout.read().decode().strip()
+        err = stderr.read().decode().strip()
         if exit_code != 0:
-            err = stderr.read().decode().strip()
             print(f"  命令失败: {cmd}")
-            print(f"  错误: {err}")
+            if out:
+                print(f"  输出: {out}")
+            if err:
+                print(f"  错误: {err}")
             ssh.close()
             sys.exit(1)
 
