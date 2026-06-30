@@ -5,9 +5,6 @@
       <div class="hero-content">
         <h1 class="hero-title">A股产业链全景分析</h1>
         <p class="hero-subtitle">五层架构 · 资讯驱动 · AI研判</p>
-        <div class="hero-links">
-          <router-link to="/admin" class="hero-link">⚙ 进入管理后台</router-link>
-        </div>
         <div class="hero-search">
           <input
             v-model="query"
@@ -33,26 +30,26 @@
       </div>
       <!-- Stats Bar -->
       <div class="stats-bar" v-if="overview">
-        <div class="stat-chip">
+        <router-link to="/stocks" class="stat-chip">
           <span class="stat-num">{{ overview.stats.stocks.toLocaleString() }}</span>
           <span class="stat-label">公司</span>
-        </div>
-        <div class="stat-chip">
+        </router-link>
+        <router-link to="/news" class="stat-chip">
           <span class="stat-num">{{ overview.stats.news.toLocaleString() }}</span>
           <span class="stat-label">资讯</span>
-        </div>
-        <div class="stat-chip">
+        </router-link>
+        <router-link to="/admin/concepts" class="stat-chip">
           <span class="stat-num">{{ overview.stats.concepts.toLocaleString() }}</span>
           <span class="stat-label">概念</span>
-        </div>
+        </router-link>
         <div class="stat-chip">
           <span class="stat-num">{{ overview.stats.events.toLocaleString() }}</span>
           <span class="stat-label">事件</span>
         </div>
-        <div class="stat-chip">
+        <router-link to="/chains" class="stat-chip">
           <span class="stat-num">{{ overview.stats.chains.toLocaleString() }}</span>
           <span class="stat-label">产业链</span>
-        </div>
+        </router-link>
       </div>
     </section>
 
@@ -85,6 +82,7 @@
           <h2 class="section-title">
             热门公司
             <span class="count">按关联资讯数</span>
+            <router-link to="/stocks" class="view-all">查看全部 →</router-link>
           </h2>
           <div class="card stock-list">
             <div v-if="!overview.hot_stocks.length" class="empty">暂无数据，请先导入股票</div>
@@ -150,9 +148,10 @@
         </h2>
         <div class="news-feed">
           <div v-if="!overview.recent_news.length" class="empty">暂无资讯</div>
-          <div
+          <router-link
             v-for="item in overview.recent_news"
             :key="item.id"
+            :to="`/news/${item.id}`"
             class="news-card card"
           >
             <div class="news-meta">
@@ -162,7 +161,7 @@
             </div>
             <div class="news-title">{{ item.title }}</div>
             <div v-if="item.summary" class="news-summary">{{ item.summary }}</div>
-          </div>
+          </router-link>
         </div>
       </section>
     </div>
@@ -245,15 +244,7 @@ onMounted(async () => {
 }
 .hero-content { max-width: 640px; margin: 0 auto; }
 .hero-title { font-size: 32px; font-weight: 800; margin-bottom: 8px; letter-spacing: 1px; }
-.hero-subtitle { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 12px; }
-.hero-links { margin-bottom: 20px; }
-.hero-link {
-  color: rgba(255,255,255,0.5);
-  font-size: 13px;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-.hero-link:hover { color: #fff; text-decoration: underline; }
+.hero-subtitle { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 24px; }
 .hero-search { position: relative; max-width: 520px; margin: 0 auto; }
 .hero-search input {
   padding: 14px 18px;
@@ -305,7 +296,11 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   min-width: 70px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
 }
+a.stat-chip:hover { opacity: 0.8; text-decoration: none; }
 .stat-num { font-size: 22px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
 .stat-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
 
@@ -319,6 +314,14 @@ onMounted(async () => {
 /* Section */
 .section { margin-bottom: 32px; }
 .section-header { display: flex; align-items: center; justify-content: space-between; }
+.view-all {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: auto;
+  text-decoration: none;
+}
+.view-all:hover { color: var(--primary); text-decoration: none; }
 
 /* Layers */
 .layers-grid {
@@ -428,7 +431,19 @@ onMounted(async () => {
   display: grid;
   gap: 12px;
 }
-.news-card { padding: 16px; }
+.news-card {
+  display: block;
+  padding: 16px;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+.news-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
 .news-meta {
   display: flex;
   align-items: center;

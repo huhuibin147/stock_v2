@@ -64,6 +64,31 @@
       </div>
     </div>
 
+    <h2>基本面数据</h2>
+    <div class="actions-grid">
+      <div class="action-card">
+        <div class="action-title">估值数据更新</div>
+        <div class="action-desc">全市场PE/PB/市值（东方财富源）</div>
+        <button class="btn btn-primary" @click="doAction('valuation')" :disabled="loading.valuation">
+          {{ loading.valuation ? '更新中...' : '立即更新' }}
+        </button>
+      </div>
+      <div class="action-card">
+        <div class="action-title">财务数据采集</div>
+        <div class="action-desc">同花顺源，22项关键指标×最近8季度</div>
+        <button class="btn btn-primary" @click="doAction('financials')" :disabled="loading.financials">
+          {{ loading.financials ? '采集中...' : '立即采集' }}
+        </button>
+      </div>
+      <div class="action-card">
+        <div class="action-title">产业链映射</div>
+        <div class="action-desc">将股票匹配到五层产业链节点</div>
+        <button class="btn btn-primary" @click="doAction('mapChains')" :disabled="loading.mapChains">
+          {{ loading.mapChains ? '映射中...' : '立即映射' }}
+        </button>
+      </div>
+    </div>
+
     <!-- Logs -->
     <h2>操作日志</h2>
     <div class="logs-table">
@@ -93,6 +118,7 @@ import {
   getSystemStatus, getAdminLogs,
   triggerImportStocks, triggerImportConcepts, triggerImportConceptStocks,
   triggerCollectEastmoney, triggerCollectTHS, triggerCollectSina, triggerCollectAll,
+  triggerImportValuation, triggerImportFinancials, triggerMapChains,
 } from "../../api/admin";
 import type { SystemStatus, AdminLog } from "../../api/admin";
 
@@ -106,6 +132,9 @@ const loading = reactive({
   ths: false,
   sina: false,
   all: false,
+  valuation: false,
+  financials: false,
+  mapChains: false,
 });
 
 const tableLabels: Record<string, string> = {
@@ -115,6 +144,7 @@ const tableLabels: Record<string, string> = {
   concepts: "概念",
   industry_chains: "产业链",
   news_stocks: "资讯关联",
+  stock_financials: "财务数据",
 };
 
 const actionLabels: Record<string, string> = {
@@ -124,6 +154,12 @@ const actionLabels: Record<string, string> = {
   collect_eastmoney: "东方财富采集",
   collect_ths: "同花顺采集",
   collect_sina: "新浪采集",
+  import_valuation: "估值数据更新",
+  import_financials: "财务数据采集",
+  import_profiles: "公司概况导入",
+  collect_cninfo: "巨潮公告采集",
+  cleanup_news: "资讯清理",
+  map_chains: "产业链映射",
 };
 
 function statusBadge(s: string) {
@@ -150,6 +186,9 @@ async function doAction(type: string) {
       case "ths": res = await triggerCollectTHS(); break;
       case "sina": res = await triggerCollectSina(); break;
       case "all": res = await triggerCollectAll(); break;
+      case "valuation": res = await triggerImportValuation(); break;
+      case "financials": res = await triggerImportFinancials(); break;
+      case "mapChains": res = await triggerMapChains(); break;
     }
     if (res?.code === 0) {
       // 等一下再刷新日志

@@ -19,6 +19,76 @@
       </div>
     </div>
 
+    <!-- 公司概况 -->
+    <div v-if="profile.company" class="card company-card">
+      <div class="company-header" @click="companyExpanded = !companyExpanded">
+        <h3>公司概况</h3>
+        <span class="expand-icon">{{ companyExpanded ? '收起' : '展开' }}</span>
+      </div>
+      <div v-if="companyExpanded" class="company-body">
+        <div class="info-grid">
+          <div class="info-item" v-if="profile.company.legal_rep">
+            <span class="info-label">法人代表</span>
+            <span class="info-value">{{ profile.company.legal_rep }}</span>
+          </div>
+          <div class="info-item" v-if="profile.company.found_date">
+            <span class="info-label">成立日期</span>
+            <span class="info-value">{{ profile.company.found_date }}</span>
+          </div>
+          <div class="info-item" v-if="profile.company.list_date">
+            <span class="info-label">上市日期</span>
+            <span class="info-value">{{ profile.company.list_date }}</span>
+          </div>
+          <div class="info-item" v-if="profile.company.reg_capital">
+            <span class="info-label">注册资本</span>
+            <span class="info-value">{{ profile.company.reg_capital }}</span>
+          </div>
+          <div class="info-item" v-if="profile.company.phone">
+            <span class="info-label">电话</span>
+            <span class="info-value">{{ profile.company.phone }}</span>
+          </div>
+          <div class="info-item" v-if="profile.company.website">
+            <span class="info-label">官网</span>
+            <span class="info-value"><a :href="profile.company.website" target="_blank">{{ profile.company.website }}</a></span>
+          </div>
+        </div>
+        <div v-if="profile.company.office_address" class="info-block">
+          <span class="info-label">办公地址</span>
+          <span class="info-value">{{ profile.company.office_address }}</span>
+        </div>
+        <div v-if="profile.company.business_scope" class="info-block">
+          <span class="info-label">经营范围</span>
+          <span class="info-value long-text">{{ profile.company.business_scope }}</span>
+        </div>
+        <div v-if="profile.company.introduction" class="info-block">
+          <span class="info-label">公司简介</span>
+          <span class="info-value long-text">{{ profile.company.introduction }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 估值概览 -->
+    <div v-if="hasValuation" class="card valuation-card">
+      <div class="valuation-grid">
+        <div class="val-item" v-if="profile.stock.pe_ttm != null">
+          <span class="val-label">PE(TTM)</span>
+          <span class="val-num">{{ profile.stock.pe_ttm.toFixed(1) }}</span>
+        </div>
+        <div class="val-item" v-if="profile.stock.pb != null">
+          <span class="val-label">PB</span>
+          <span class="val-num">{{ profile.stock.pb.toFixed(2) }}</span>
+        </div>
+        <div class="val-item" v-if="profile.stock.market_cap != null">
+          <span class="val-label">总市值</span>
+          <span class="val-num">{{ formatCap(profile.stock.market_cap) }}</span>
+        </div>
+        <div class="val-item" v-if="profile.stock.dividend_yield != null">
+          <span class="val-label">股息率</span>
+          <span class="val-num">{{ profile.stock.dividend_yield.toFixed(2) }}%</span>
+        </div>
+      </div>
+    </div>
+
     <!-- 产业链位置 -->
     <div v-if="profile.chain.layer" class="card chain-card">
       <h3>产业链位置</h3>
@@ -40,6 +110,37 @@
       </div>
     </div>
 
+    <!-- 财务摘要 -->
+    <div v-if="financials.length" class="card">
+      <h3>财务摘要</h3>
+      <div class="table-wrap">
+        <table class="fin-table">
+          <thead>
+            <tr>
+              <th>报告期</th>
+              <th class="num">营收</th>
+              <th class="num">净利润</th>
+              <th class="num">EPS</th>
+              <th class="num">ROE%</th>
+              <th class="num">净利率%</th>
+              <th class="num">负债率%</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="f in financials" :key="f.report_date">
+              <td class="period">{{ formatPeriod(f.report_date) }}</td>
+              <td class="num">{{ formatMoney(f.revenue) }}</td>
+              <td class="num">{{ formatMoney(f.net_profit) }}</td>
+              <td class="num">{{ f.eps != null ? f.eps.toFixed(2) : '-' }}</td>
+              <td class="num">{{ f.roe != null ? f.roe.toFixed(1) : '-' }}</td>
+              <td class="num">{{ f.net_margin != null ? f.net_margin.toFixed(1) : '-' }}</td>
+              <td class="num">{{ f.equity_ratio != null ? f.equity_ratio.toFixed(1) : '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- 情感概览 -->
     <div class="card sentiment-card">
       <h3>近7日情感</h3>
@@ -55,14 +156,14 @@
     <div class="card">
       <h3>最新动态</h3>
       <div v-if="!profile.recent_news.length" class="empty">暂无资讯</div>
-      <div v-for="item in profile.recent_news" :key="item.id" class="news-item">
+      <router-link v-for="item in profile.recent_news" :key="item.id" :to="`/news/${item.id}`" class="news-item">
         <div class="news-header">
           <span :class="['badge', sentimentClass(item.sentiment)]">{{ sentimentText(item.sentiment) }}</span>
           <span class="news-time">{{ formatTime(item.published_at) }}</span>
         </div>
         <div class="news-title">{{ item.title }}</div>
         <div v-if="item.summary" class="news-summary">{{ item.summary }}</div>
-      </div>
+      </router-link>
     </div>
 
     <!-- 事件时间线 -->
@@ -82,18 +183,26 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
-import { getStockProfile } from "../api/stock";
-import type { StockProfile } from "../types";
+import { getStockProfile, getStockFinancials } from "../api/stock";
+import type { StockProfile, FinancialRecord } from "../types";
 
 const route = useRoute();
 const profile = ref<StockProfile | null>(null);
+const financials = ref<FinancialRecord[]>([]);
 const loading = ref(true);
+const companyExpanded = ref(false);
 
 async function loadProfile(code: string) {
   loading.value = true;
   const res = await getStockProfile(code);
   profile.value = res.code === 0 ? res.data : null;
   loading.value = false;
+
+  // 异步加载财务数据
+  if (profile.value) {
+    const finRes = await getStockFinancials(code);
+    if (finRes.code === 0) financials.value = finRes.data;
+  }
 }
 
 function sentimentClass(s?: number) {
@@ -119,6 +228,39 @@ const trendClass = computed(() => {
   if (t === "偏空") return "trend-negative";
   return "";
 });
+
+const hasValuation = computed(() => {
+  const s = profile.value?.stock;
+  if (!s) return false;
+  return s.pe_ttm != null || s.pb != null || s.market_cap != null;
+});
+
+function formatCap(val?: number | null) {
+  if (val == null) return "-";
+  if (val >= 1e12) return (val / 1e12).toFixed(1) + "万亿";
+  if (val >= 1e8) return (val / 1e8).toFixed(0) + "亿";
+  return val.toLocaleString();
+}
+
+function formatPeriod(d: string) {
+  // 20251231 → 2025年报, 20250331 → 2025Q1
+  if (d.length === 8) {
+    const year = d.substring(0, 4);
+    const mm = d.substring(4, 6);
+    if (mm === "12") return year + "年报";
+    if (mm === "09") return year + "Q3";
+    if (mm === "06") return year + "中报";
+    if (mm === "03") return year + "Q1";
+  }
+  return d;
+}
+
+function formatMoney(val?: number | null) {
+  if (val == null) return "-";
+  if (Math.abs(val) >= 1e8) return (val / 1e8).toFixed(1) + "亿";
+  if (Math.abs(val) >= 1e4) return (val / 1e4).toFixed(0) + "万";
+  return val.toFixed(0);
+}
 
 onMounted(() => loadProfile(route.params.code as string));
 watch(() => route.params.code, (c) => { if (c) loadProfile(c as string); });
@@ -167,6 +309,107 @@ watch(() => route.params.code, (c) => { if (c) loadProfile(c as string); });
   color: var(--primary);
 }
 
+/* 公司概况 */
+.company-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+.company-header h3 { margin-bottom: 0; }
+.expand-icon {
+  font-size: 13px;
+  color: var(--primary);
+}
+.company-body {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px 24px;
+  margin-bottom: 12px;
+}
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+}
+.info-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.info-value {
+  font-size: 14px;
+  color: var(--text);
+}
+.long-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* 估值概览 */
+.valuation-card {
+  padding: 16px 20px;
+}
+.valuation-grid {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+.val-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+.val-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.val-num {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* 财务表格 */
+.table-wrap {
+  overflow-x: auto;
+}
+.fin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.fin-table th {
+  background: var(--bg-secondary);
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
+}
+.fin-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-light);
+}
+.fin-table tr:last-child td { border-bottom: none; }
+.fin-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.fin-table .period { font-weight: 500; white-space: nowrap; }
+
 .chain-card h3,
 .sentiment-card h3,
 .card h3 {
@@ -206,8 +449,17 @@ watch(() => route.params.code, (c) => { if (c) loadProfile(c as string); });
 .trend-negative { color: var(--success); }
 
 .news-item {
+  display: block;
   padding: 12px 0;
   border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
+  cursor: pointer;
+}
+.news-item:hover {
+  background: var(--bg-secondary);
+  text-decoration: none;
 }
 .news-item:last-child { border-bottom: none; }
 .news-header {

@@ -27,6 +27,10 @@ async def lifespan(app: FastAPI):
     from app.tasks.import_chains import import_chains
     await import_chains()
 
+    # 启动定时任务调度器
+    from app.scheduler import start_scheduler
+    start_scheduler()
+
     logger.info("app_started", port=settings.backend_port)
     yield
 

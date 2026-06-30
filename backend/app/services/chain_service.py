@@ -46,13 +46,21 @@ async def get_industry_chain(layer: int | None = None, stock_code: str | None = 
                             edges.append({"source": f"chain_{chain['id']}", "target": f"chain_{down_id}", "type": "downstream"})
         else:
             # 返回全部或某层级
-            where = "WHERE layer = ?" if layer else ""
+            where = "WHERE c.layer = ?" if layer else ""
             params = (layer,) if layer else ()
-            cursor = await db.execute(f"SELECT id, name, layer, upstream_ids, downstream_ids FROM industry_chains {where}", params)
+            cursor = await db.execute(
+                f"""SELECT c.id, c.name, c.layer, c.upstream_ids, c.downstream_ids, COUNT(s.code)
+                    FROM industry_chains c
+                    LEFT JOIN stocks s ON s.chain_id = c.id AND s.is_active = 1
+                    {where}
+                    GROUP BY c.id
+                    ORDER BY c.layer, c.name""",
+                params,
+            )
             rows = await cursor.fetchall()
 
             for r in rows:
-                nodes.append({"id": f"chain_{r[0]}", "type": "industry", "name": r[1], "layer": r[2]})
+                nodes.append({"id": f"chain_{r[0]}", "type": "industry", "name": r[1], "layer": r[2], "stock_count": r[5]})
                 for up_id in json.loads(r[3]) if r[3] else []:
                     edges.append({"source": f"chain_{up_id}", "target": f"chain_{r[0]}", "type": "upstream"})
                 for down_id in json.loads(r[4]) if r[4] else []:

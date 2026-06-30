@@ -2,7 +2,20 @@
   <div class="admin-news">
     <div class="toolbar">
       <h2>资讯管理</h2>
-      <button class="btn" @click="load(1)">刷新</button>
+      <div class="toolbar-actions">
+        <button class="btn" @click="load(1)">刷新</button>
+        <div class="cleanup-group">
+          <select v-model="cleanupDays" class="select">
+            <option :value="30">30天</option>
+            <option :value="60">60天</option>
+            <option :value="90">90天</option>
+            <option :value="180">180天</option>
+          </select>
+          <button class="btn btn-danger" @click="doCleanup" :disabled="cleaning">
+            {{ cleaning ? '清理中...' : '清理旧资讯' }}
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="table-wrap">
@@ -38,13 +51,15 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getAdminNews } from "../../api/admin";
+import { getAdminNews, cleanupNews } from "../../api/admin";
 import type { AdminNews } from "../../api/admin";
 
 const items = ref<AdminNews[]>([]);
 const page = ref(1);
 const pageSize = 20;
 const total = ref(0);
+const cleanupDays = ref(90);
+const cleaning = ref(false);
 
 async function load(p: number) {
   page.value = p;
@@ -66,6 +81,19 @@ function sentimentText(s?: number | null) {
   return "中性";
 }
 
+async function doCleanup() {
+  cleaning.value = true;
+  try {
+    const res = await cleanupNews(cleanupDays.value);
+    if (res.code === 0) {
+      alert(`清理完成，删除 ${res.data.deleted} 条${cleanupDays.value}天前的资讯`);
+      load(1);
+    }
+  } finally {
+    cleaning.value = false;
+  }
+}
+
 onMounted(() => load(1));
 </script>
 
@@ -75,6 +103,32 @@ onMounted(() => load(1));
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+}
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cleanup-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: var(--bg);
+  cursor: pointer;
+}
+.btn-danger {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--primary);
+  color: #fff;
 }
 .table-wrap {
   background: var(--bg);

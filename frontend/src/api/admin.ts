@@ -101,3 +101,19 @@ export function triggerCollectSina() {
 export function triggerCollectAll() {
   return post("/api/v1/admin/collect/all");
 }
+
+export function cleanupNews(days = 90) {
+  return post<{ deleted: number; days: number }>(`/api/v1/admin/cleanup/news?days=${days}`);
+}
+
+export function triggerImportValuation() {
+  return post("/api/v1/admin/import/valuation");
+}
+
+export function triggerImportFinancials(limit = 100) {
+  return post(`/api/v1/admin/import/financials?limit=${limit}`);
+}
+
+export function triggerMapChains() {
+  return post("/api/v1/admin/map/chains");
+}

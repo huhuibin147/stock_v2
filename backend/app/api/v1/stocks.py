@@ -6,6 +6,17 @@ from app.services import stock_service
 router = APIRouter(prefix="/api/v1/stocks", tags=["stocks"])
 
 
+@router.get("")
+async def list_stocks(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    industry: str = Query(""),
+    q: str = Query(""),
+):
+    data = await stock_service.list_stocks(page, page_size, industry, q)
+    return ok(data)
+
+
 @router.get("/search")
 async def search(q: str = Query(..., min_length=1), limit: int = Query(10, ge=1, le=50)):
     results = await stock_service.search_stocks(q, limit)
@@ -34,4 +45,10 @@ async def news(
 @router.get("/{code}/events")
 async def events(code: str, limit: int = Query(20, ge=1, le=100)):
     data = await stock_service.get_stock_events(code, limit)
+    return ok(data)
+
+
+@router.get("/{code}/financials")
+async def financials(code: str, limit: int = Query(8, ge=1, le=20)):
+    data = await stock_service.get_stock_financials(code, limit)
     return ok(data)

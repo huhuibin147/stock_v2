@@ -18,6 +18,12 @@ class EastMoneyCollector(BaseCollector):
     base_url = "https://www.eastmoney.com"
     rate_limit = 1.5
 
+    def _filter_important(self, items: list[RawNews]) -> list[RawNews]:
+        """财经快讯全部保留，来源本身已是筛选过的"""
+        for item in items:
+            item.extra["importance_score"] = self._calc_importance(item)
+        return items
+
     async def fetch_list(self, page: int) -> list[RawNews]:
         """采集7x24快讯"""
         client = await self._get_client()

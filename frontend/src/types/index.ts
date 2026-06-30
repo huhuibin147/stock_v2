@@ -5,6 +5,10 @@ export interface StockInfo {
   industry?: string;
   concepts: string[];
   core_business?: string;
+  pe_ttm?: number | null;
+  pb?: number | null;
+  market_cap?: number | null;
+  dividend_yield?: number | null;
 }
 
 export interface ChainPosition {
@@ -25,6 +29,25 @@ export interface NewsItem {
   url?: string;
 }
 
+export interface NewsDetail {
+  id: number;
+  title: string;
+  content: string;
+  summary: string;
+  key_points: string[] | null;
+  sentiment: number | null;
+  sentiment_score: number | null;
+  published_at: string | null;
+  source: string | null;
+  url: string | null;
+  entities: { type: string; code: string; name: string }[] | null;
+  events: { type: string; subtype: string; impact: number }[] | null;
+  tags: string[] | null;
+  category: string | null;
+  importance_score: number | null;
+  stocks: { code: string; name: string }[];
+}
+
 export interface EventItem {
   event_type: string;
   event_subtype?: string;
@@ -40,9 +63,26 @@ export interface SentimentSummary {
   trend: string;
 }
 
+export interface CompanyProfile {
+  company_name: string | null;
+  english_name: string | null;
+  legal_rep: string | null;
+  reg_capital: string | null;
+  found_date: string | null;
+  list_date: string | null;
+  website: string | null;
+  email: string | null;
+  phone: string | null;
+  reg_address: string | null;
+  office_address: string | null;
+  business_scope: string | null;
+  introduction: string | null;
+}
+
 export interface StockProfile {
   stock: StockInfo;
   chain: ChainPosition;
+  company: CompanyProfile | null;
   recent_news: NewsItem[];
   recent_events: EventItem[];
   sentiment_7d: SentimentSummary;
@@ -73,6 +113,20 @@ export interface LayerSummary {
   name: string;
   chain_count: number;
   stock_count: number;
+}
+
+export interface FinancialRecord {
+  report_date: string;
+  net_profit: number | null;
+  net_profit_yoy: number | null;
+  revenue: number | null;
+  revenue_yoy: number | null;
+  eps: number | null;
+  bps: number | null;
+  roe: number | null;
+  net_margin: number | null;
+  equity_ratio: number | null;
+  ocf_ps: number | null;
 }
 
 export interface OverviewData {

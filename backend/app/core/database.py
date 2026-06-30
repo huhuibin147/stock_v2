@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS news (
     source          TEXT NOT NULL,
     source_id       TEXT,
     title           TEXT NOT NULL,
+    content         TEXT DEFAULT '',
     summary         TEXT NOT NULL DEFAULT '',
     key_points      TEXT,
     url             TEXT,
@@ -105,6 +106,45 @@ CREATE TABLE IF NOT EXISTS concepts (
     updated_at    TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS stock_profiles (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    code            TEXT NOT NULL UNIQUE,
+    company_name    TEXT,
+    english_name    TEXT,
+    legal_rep       TEXT,
+    reg_capital     TEXT,
+    found_date      TEXT,
+    list_date       TEXT,
+    website         TEXT,
+    email           TEXT,
+    phone           TEXT,
+    reg_address     TEXT,
+    office_address  TEXT,
+    business_scope  TEXT,
+    introduction    TEXT,
+    created_at      TEXT DEFAULT (datetime('now')),
+    updated_at      TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS stock_financials (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    code            TEXT NOT NULL,
+    report_date     TEXT NOT NULL,
+    net_profit      REAL,
+    net_profit_yoy  REAL,
+    revenue         REAL,
+    revenue_yoy     REAL,
+    eps             REAL,
+    bps             REAL,
+    roe             REAL,
+    net_margin      REAL,
+    equity_ratio    REAL,
+    ocf_ps          REAL,
+    created_at      TEXT DEFAULT (datetime('now')),
+    UNIQUE(code, report_date)
+);
+CREATE INDEX IF NOT EXISTS idx_financials_code ON stock_financials(code);
+
 CREATE TABLE IF NOT EXISTS admin_logs (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     action      TEXT NOT NULL,
@@ -137,11 +177,26 @@ END;
 
 
 async def init_db():
-    """初始化数据库：建表 + FTS索引"""
+    """初始化数据库：建表 + FTS索引 + 增量迁移"""
     Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(TABLES_SQL)
         await db.executescript(FTS_SQL)
+
+        # 增量迁移（兼容已有数据库，列已存在则忽略）
+        migrations = [
+            "ALTER TABLE news ADD COLUMN content TEXT DEFAULT ''",
+            "ALTER TABLE stocks ADD COLUMN pe_ttm REAL",
+            "ALTER TABLE stocks ADD COLUMN pb REAL",
+            "ALTER TABLE stocks ADD COLUMN market_cap REAL",
+            "ALTER TABLE stocks ADD COLUMN dividend_yield REAL",
+        ]
+        for sql in migrations:
+            try:
+                await db.execute(sql)
+            except Exception:
+                pass
+
         await db.commit()
     logger.info("database_initialized", path=DB_PATH)
 

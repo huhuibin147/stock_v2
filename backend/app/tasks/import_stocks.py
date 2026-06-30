@@ -185,3 +185,126 @@ async def import_concept_stocks():
         logger.error("import_concept_stocks_failed", error=str(e))
     finally:
         await db.close()
+
+
+async def import_stock_profiles():
+    """从巨潮资讯导入公司概况（core_business + industry）"""
+    try:
+        import akshare as ak
+    except ImportError:
+        logger.error("akshare_not_installed")
+        return
+
+    logger.info("import_stock_profiles_start")
+
+    db = await get_db()
+    try:
+        # 查询尚未采集公司详情的股票
+        cursor = await db.execute(
+            """SELECT s.code, s.name FROM stocks s
+               LEFT JOIN stock_profiles sp ON sp.code = s.code
+               WHERE s.is_active = 1 AND sp.code IS NULL
+               ORDER BY s.code"""
+        )
+        stocks = await cursor.fetchall()
+        if not stocks:
+            logger.info("import_stock_profiles_nothing_to_update")
+            return
+
+        import asyncio
+        import time
+
+        updated = 0
+        failed = 0
+        batch_size = 50
+
+        for i in range(0, len(stocks), batch_size):
+            batch = stocks[i:i + batch_size]
+            for code, name in batch:
+                try:
+                    loop = asyncio.get_event_loop()
+                    df = await loop.run_in_executor(
+                        None, lambda c=code: ak.stock_profile_cninfo(symbol=c)
+                    )
+                    if df is None or df.empty:
+                        continue
+
+                    row = df.iloc[0]
+                    main_business = str(row.get("主营业务", "")).strip()
+                    intro = str(row.get("机构简介", "")).strip()
+                    industry = str(row.get("所属行业", "")).strip()
+
+                    def safe_str(val):
+                        s = str(val).strip()
+                        return s if s and s != "nan" else None
+
+                    # 保存详细公司信息
+                    await db.execute(
+                        """INSERT OR REPLACE INTO stock_profiles
+                           (code, company_name, english_name, legal_rep, reg_capital,
+                            found_date, list_date, website, email, phone,
+                            reg_address, office_address, business_scope, introduction, updated_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))""",
+                        (
+                            code,
+                            safe_str(row.get("公司名称")),
+                            safe_str(row.get("英文名称")),
+                            safe_str(row.get("法人代表")),
+                            safe_str(row.get("注册资金")),
+                            safe_str(row.get("成立日期")),
+                            safe_str(row.get("上市日期")),
+                            safe_str(row.get("官方网站")),
+                            safe_str(row.get("电子邮箱")),
+                            safe_str(row.get("联系电话")),
+                            safe_str(row.get("注册地址")),
+                            safe_str(row.get("办公地址")),
+                            safe_str(row.get("经营范围")),
+                            safe_str(row.get("机构简介")),
+                        ),
+                    )
+
+                    # core_business: 优先用主营业务，备选机构简介（截取前200字）
+                    core_business = ""
+                    if main_business and main_business != "nan":
+                        core_business = main_business[:200]
+                    elif intro and intro != "nan":
+                        core_business = intro[:200]
+
+                    # 更新 stocks 表
+                    updates = []
+                    params = []
+                    if core_business:
+                        updates.append("core_business = ?")
+                        params.append(core_business)
+                    if industry and industry != "nan":
+                        updates.append("industry = ?")
+                        params.append(industry)
+
+                    if updates:
+                        updates.append("updated_at = datetime('now')")
+                        params.append(code)
+                        await db.execute(
+                            f"UPDATE stocks SET {', '.join(updates)} WHERE code = ?",
+                            params,
+                        )
+                    updated += 1
+
+                except Exception as e:
+                    failed += 1
+                    logger.debug("import_profile_failed", code=code, error=str(e))
+
+            # 每批提交一次
+            await db.commit()
+            logger.info("import_stock_profiles_batch", batch=i // batch_size + 1,
+                         updated=updated, failed=failed, total=len(stocks))
+
+            # 批间延迟，避免被限流
+            if i + batch_size < len(stocks):
+                time.sleep(2)
+
+        logger.info("import_stock_profiles_done", updated=updated, failed=failed, total=len(stocks))
+
+    except Exception as e:
+        logger.error("import_stock_profiles_failed", error=str(e))
+    finally:
+        await db.close()

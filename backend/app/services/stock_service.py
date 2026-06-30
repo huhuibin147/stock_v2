@@ -6,6 +6,62 @@ from app.core.database import get_db
 logger = structlog.get_logger()
 
 
+async def list_stocks(page: int = 1, page_size: int = 20, industry: str = "", q: str = "") -> dict:
+    """分页查询股票列表"""
+    db = await get_db()
+    try:
+        where = ["s.is_active = 1"]
+        params = []
+        if industry:
+            where.append("s.industry = ?")
+            params.append(industry)
+        if q:
+            where.append("(s.code LIKE ? OR s.name LIKE ?)")
+            params.extend([f"%{q}%", f"%{q}%"])
+
+        where_sql = " AND ".join(where)
+
+        # 总数
+        cursor = await db.execute(f"SELECT COUNT(*) FROM stocks s WHERE {where_sql}", params)
+        total = (await cursor.fetchone())[0]
+
+        # 分页数据
+        offset = (page - 1) * page_size
+        cursor = await db.execute(
+            f"""SELECT s.code, s.name, s.market, s.industry, s.concepts, s.core_business,
+                       s.pe_ttm, s.pb, s.market_cap
+                FROM stocks s
+                WHERE {where_sql}
+                ORDER BY s.market_cap DESC NULLS LAST, s.code
+                LIMIT ? OFFSET ?""",
+            params + [page_size, offset],
+        )
+        rows = await cursor.fetchall()
+        items = []
+        for r in rows:
+            concepts = r[4]
+            if isinstance(concepts, str):
+                try:
+                    concepts = json.loads(concepts)
+                except (json.JSONDecodeError, TypeError):
+                    concepts = []
+            items.append({
+                "code": r[0],
+                "name": r[1],
+                "market": r[2],
+                "industry": r[3],
+                "concepts": concepts or [],
+                "core_business": r[5],
+                "pe_ttm": r[6],
+                "pb": r[7],
+                "market_cap": r[8],
+            })
+
+        return {"items": items, "total": total, "page": page, "page_size": page_size}
+    finally:
+        await db.close()
+
+
 async def search_stocks(query: str, limit: int = 10) -> list[dict]:
     """搜索股票（代码或名称模糊匹配）"""
     db = await get_db()
@@ -32,7 +88,7 @@ async def get_stock_by_code(code: str) -> dict | None:
     db = await get_db()
     try:
         cursor = await db.execute(
-            "SELECT code, name, market, industry, concepts, core_business, chain_id FROM stocks WHERE code = ?",
+            "SELECT code, name, market, industry, concepts, core_business, chain_id, pe_ttm, pb, market_cap, dividend_yield FROM stocks WHERE code = ?",
             (code,),
         )
         row = await cursor.fetchone()
@@ -54,6 +110,9 @@ async def get_stock_profile(code: str) -> dict | None:
         # 产业链信息
         chain = await _get_chain_info(db, stock.get("chain_id"))
 
+        # 公司详细信息
+        company = await _get_company_profile(db, code)
+
         # 最近重要资讯
         recent_news = await _get_recent_news(db, code, limit=5)
 
@@ -66,6 +125,7 @@ async def get_stock_profile(code: str) -> dict | None:
         return {
             "stock": stock,
             "chain": chain,
+            "company": company,
             "recent_news": recent_news,
             "recent_events": recent_events,
             "sentiment_7d": sentiment_7d,
@@ -150,6 +210,40 @@ async def get_stock_events(code: str, limit: int = 20) -> list[dict]:
         await db.close()
 
 
+async def get_stock_financials(code: str, limit: int = 8) -> list[dict]:
+    """获取股票季度财务数据"""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """SELECT report_date, net_profit, net_profit_yoy, revenue, revenue_yoy,
+                      eps, bps, roe, net_margin, equity_ratio, ocf_ps
+               FROM stock_financials
+               WHERE code = ?
+               ORDER BY report_date DESC
+               LIMIT ?""",
+            (code, limit),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "report_date": r[0],
+                "net_profit": r[1],
+                "net_profit_yoy": r[2],
+                "revenue": r[3],
+                "revenue_yoy": r[4],
+                "eps": r[5],
+                "bps": r[6],
+                "roe": r[7],
+                "net_margin": r[8],
+                "equity_ratio": r[9],
+                "ocf_ps": r[10],
+            }
+            for r in rows
+        ]
+    finally:
+        await db.close()
+
+
 # ── 内部辅助 ──
 
 
@@ -168,10 +262,43 @@ def _row_to_stock(row) -> dict:
         "concepts": concepts or [],
         "core_business": row[5] if len(row) > 5 else None,
         "chain_id": row[6] if len(row) > 6 else None,
+        "pe_ttm": row[7] if len(row) > 7 else None,
+        "pb": row[8] if len(row) > 8 else None,
+        "market_cap": row[9] if len(row) > 9 else None,
+        "dividend_yield": row[10] if len(row) > 10 else None,
     }
 
 
 LAYER_NAMES = {1: "能源电力", 2: "芯片硬件", 3: "基础设施", 4: "AI基础", 5: "AI应用"}
+
+
+async def _get_company_profile(db, code: str) -> dict | None:
+    """获取公司详细信息"""
+    cursor = await db.execute(
+        """SELECT company_name, english_name, legal_rep, reg_capital,
+                  found_date, list_date, website, email, phone,
+                  reg_address, office_address, business_scope, introduction
+           FROM stock_profiles WHERE code = ?""",
+        (code,),
+    )
+    row = await cursor.fetchone()
+    if not row:
+        return None
+    return {
+        "company_name": row[0],
+        "english_name": row[1],
+        "legal_rep": row[2],
+        "reg_capital": row[3],
+        "found_date": row[4],
+        "list_date": row[5],
+        "website": row[6],
+        "email": row[7],
+        "phone": row[8],
+        "reg_address": row[9],
+        "office_address": row[10],
+        "business_scope": row[11],
+        "introduction": row[12],
+    }
 
 
 async def _get_chain_info(db, chain_id: int | None) -> dict:

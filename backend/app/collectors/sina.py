@@ -17,6 +17,13 @@ class SinaCollector(BaseCollector):
     base_url = "https://finance.sina.com.cn"
     rate_limit = 1.5
 
+    def _filter_important(self, items: list[RawNews]) -> list[RawNews]:
+        """财经资讯全部保留"""
+        for item in items:
+            item.extra["importance_score"] = self._calc_importance(item)
+        return items
+    rate_limit = 1.5
+
     def __init__(self):
         super().__init__()
         self._page_size = 50

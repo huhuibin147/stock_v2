@@ -19,6 +19,12 @@ class THSCollector(BaseCollector):
         super().__init__()
         self._page = 0
 
+    def _filter_important(self, items: list[RawNews]) -> list[RawNews]:
+        """财经资讯全部保留"""
+        for item in items:
+            item.extra["importance_score"] = self._calc_importance(item)
+        return items
+
     async def fetch_list(self, page: int) -> list[RawNews]:
         """采集同花顺资讯"""
         client = await self._get_client()

@@ -7,7 +7,11 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: "/", component: () => import("./views/Home.vue") },
+    { path: "/stocks", component: () => import("./views/StockList.vue") },
     { path: "/stock/:code", component: () => import("./views/StockProfile.vue") },
+    { path: "/news", component: () => import("./views/NewsList.vue") },
+    { path: "/news/:id", component: () => import("./views/NewsDetail.vue") },
+    { path: "/chains", component: () => import("./views/ChainList.vue") },
     {
       path: "/admin",
       component: () => import("./views/admin/Layout.vue"),

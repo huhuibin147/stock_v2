@@ -1,5 +1,5 @@
 import { get } from "./request";
-import type { StockInfo, StockProfile, NewsItem, EventItem } from "../types";
+import type { StockInfo, StockProfile, NewsItem, NewsDetail, EventItem, FinancialRecord } from "../types";
 
 export function searchStocks(q: string, limit = 10) {
   return get<StockInfo[]>(`/api/v1/stocks/search?q=${encodeURIComponent(q)}&limit=${limit}`);
@@ -19,8 +19,16 @@ export function getStockEvents(code: string) {
   return get<EventItem[]>(`/api/v1/stocks/${code}/events`);
 }
 
+export function getStockFinancials(code: string, limit = 8) {
+  return get<FinancialRecord[]>(`/api/v1/stocks/${code}/financials?limit=${limit}`);
+}
+
 export function getHotNews(limit = 20) {
   return get<NewsItem[]>(`/api/v1/news/hot?limit=${limit}`);
+}
+
+export function getNewsDetail(id: number) {
+  return get<NewsDetail>(`/api/v1/news/${id}`);
 }
 
 export interface OverviewData {
