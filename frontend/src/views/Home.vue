@@ -480,10 +480,24 @@ a.stat-chip:hover { opacity: 0.8; text-decoration: none; }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .layers-grid { grid-template-columns: repeat(2, 1fr); }
-  .two-col { grid-template-columns: 1fr; }
-  .hero-title { font-size: 24px; }
-  .stats-bar { gap: 16px; }
+  .hero { padding: 32px 16px 24px; }
+  .hero-title { font-size: 22px; }
+  .hero-subtitle { font-size: 13px; }
+  .hero-search input { padding: 12px 14px; font-size: 14px; }
+  .stats-bar { gap: 12px; margin-top: 20px; }
   .stat-num { font-size: 18px; }
+  .stat-label { font-size: 10px; }
+  .content { padding: 16px; }
+  .layers-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .layer-card { padding: 12px; }
+  .layer-name { font-size: 14px; }
+  .two-col { grid-template-columns: 1fr; gap: 16px; }
+  .stock-row { padding: 10px 12px; }
+  .stock-ind { display: none; }
+  .news-card { padding: 12px; }
+  .news-title { font-size: 14px; }
+  .news-summary { font-size: 12px; }
+  .event-row { padding: 8px 12px; }
+  .event-date { font-size: 11px; min-width: 65px; }
 }
 </style>

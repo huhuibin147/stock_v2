@@ -258,17 +258,33 @@ async def _import_financials():
 
 
 async def _cleanup_expired():
-    """清理过期资讯"""
+    """清理过期资讯（90天）及孤儿关联"""
     from app.core.database import get_db
 
     db = await get_db()
     try:
+        # 先删关联表
+        cursor = await db.execute(
+            "DELETE FROM news_stocks WHERE news_id NOT IN (SELECT id FROM news)"
+        )
+        orphan = cursor.rowcount
+
+        # 删过期资讯
         cursor = await db.execute(
             "DELETE FROM news WHERE retention = 'normal' AND created_at < datetime('now', '-90 days')"
         )
         count = cursor.rowcount
+
+        # 再清一次关联表
+        if count > 0:
+            cursor2 = await db.execute(
+                "DELETE FROM news_stocks WHERE news_id NOT IN (SELECT id FROM news)"
+            )
+            orphan += cursor2.rowcount
+
         await db.commit()
-        logger.info("cleanup_done", deleted=count)
+        if count > 0 or orphan > 0:
+            logger.info("cleanup_done", deleted=count, orphan=orphan)
     finally:
         await db.close()
 
