@@ -2,39 +2,46 @@
   <div class="news-list-page">
     <div class="page-header">
       <h2>资讯列表</h2>
+      <button class="filter-toggle" @click="showFilter = !showFilter">
+        {{ showFilter ? '收起筛选' : '筛选' }}
+      </button>
     </div>
 
-    <div class="filters">
-      <select v-model="sortBy" @change="load(1)" class="select">
-        <option value="time_desc">时间倒序</option>
-        <option value="time_asc">时间正序</option>
-        <option value="importance">重要度</option>
-      </select>
-      <select v-model="filterSource" @change="load(1)" class="select">
-        <option value="">全部来源</option>
-        <option value="eastmoney">东方财富</option>
-        <option value="ths">同花顺</option>
-        <option value="sina">新浪财经</option>
-        <option value="cninfo">巨潮公告</option>
-      </select>
-      <select v-model="filterSentiment" @change="load(1)" class="select">
-        <option value="">全部情感</option>
-        <option value="1">利好</option>
-        <option value="0">中性</option>
-        <option value="-1">利空</option>
-      </select>
-      <select v-model="filterCategory" @change="load(1)" class="select">
-        <option value="">全部类型</option>
-        <option value="news">新闻</option>
-        <option value="announcement">公告</option>
-      </select>
-      <input
-        v-model="filterStock"
-        type="search"
-        placeholder="股票代码，如 600519"
-        class="stock-input"
-        @input="onStockSearch"
-      />
+    <div class="filters" :class="{ open: showFilter }">
+      <div class="filter-row">
+        <select v-model="sortBy" @change="load(1)" class="select">
+          <option value="time_desc">时间倒序</option>
+          <option value="time_asc">时间正序</option>
+          <option value="importance">重要度</option>
+        </select>
+        <select v-model="filterSource" @change="load(1)" class="select">
+          <option value="">全部来源</option>
+          <option value="eastmoney">东方财富</option>
+          <option value="ths">同花顺</option>
+          <option value="sina">新浪财经</option>
+          <option value="cninfo">巨潮公告</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <select v-model="filterSentiment" @change="load(1)" class="select">
+          <option value="">全部情感</option>
+          <option value="1">利好</option>
+          <option value="0">中性</option>
+          <option value="-1">利空</option>
+        </select>
+        <select v-model="filterCategory" @change="load(1)" class="select">
+          <option value="">全部类型</option>
+          <option value="news">新闻</option>
+          <option value="announcement">公告</option>
+        </select>
+        <input
+          v-model="filterStock"
+          type="search"
+          placeholder="股票代码"
+          class="stock-input"
+          @input="onStockSearch"
+        />
+      </div>
     </div>
 
     <div class="news-table">
@@ -45,9 +52,8 @@
         :to="`/news/${n.id}`"
         class="news-row"
       >
-        <div class="news-main">
-          <span :class="['badge', sentimentClass(n.sentiment)]">{{ sentimentText(n.sentiment) }}</span>
-          <span class="cat-tag" v-if="n.category">{{ categoryText(n.category) }}</span>
+        <span :class="['badge', sentimentClass(n.sentiment)]">{{ sentimentText(n.sentiment) }}</span>
+        <span class="news-title-wrap">
           <span class="news-title">{{ n.title }}</span>
           <span class="stock-tags" v-if="n.stocks && n.stocks.length">
             <router-link
@@ -58,17 +64,17 @@
               @click.stop
             >{{ s.name }}</router-link>
           </span>
-        </div>
-        <div class="news-meta">
+        </span>
+        <span class="news-right">
           <span class="source-tag">{{ sourceLabel(n.source) }}</span>
           <span class="news-time">{{ formatTime(n.published_at) }}</span>
-        </div>
+        </span>
       </router-link>
     </div>
 
     <div class="pagination" v-if="total > pageSize">
       <button class="btn" :disabled="page <= 1" @click="load(page - 1)">上一页</button>
-      <span>第 {{ page }} / {{ Math.ceil(total / pageSize) }} 页 (共 {{ total }} 条)</span>
+      <span>{{ page }}/{{ Math.ceil(total / pageSize) }} ({{ total }}条)</span>
       <button class="btn" :disabled="page >= Math.ceil(total / pageSize)" @click="load(page + 1)">下一页</button>
     </div>
   </div>
@@ -98,6 +104,7 @@ const items = ref<NewsItem[]>([]);
 const page = ref(1);
 const pageSize = 30;
 const total = ref(0);
+const showFilter = ref(false);
 const sortBy = ref("time_desc");
 const filterSource = ref("");
 const filterSentiment = ref("");
@@ -135,10 +142,6 @@ function sentimentText(s?: number | null) {
   if (s === -1) return "利空";
   return "中性";
 }
-function categoryText(c?: string) {
-  if (c === "announcement") return "公告";
-  return "新闻";
-}
 function sourceLabel(s: string) {
   const map: Record<string, string> = { eastmoney: "东方财富", ths: "同花顺", sina: "新浪", cninfo: "巨潮公告" };
   return map[s] || s;
@@ -155,21 +158,38 @@ onMounted(() => load(1));
 .news-list-page {
   max-width: 960px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 16px;
 }
 .page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 12px;
 }
-.page-header h2 { font-size: 20px; font-weight: 700; }
+.page-header h2 { font-size: 18px; font-weight: 700; }
+.filter-toggle {
+  display: none;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-size: 13px;
+  cursor: pointer;
+}
 
 .filters {
   display: flex;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.filter-row {
+  display: flex;
+  gap: 8px;
   flex-wrap: wrap;
 }
 .select {
-  padding: 8px 12px;
+  padding: 7px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13px;
@@ -177,11 +197,11 @@ onMounted(() => load(1));
   cursor: pointer;
 }
 .stock-input {
-  padding: 8px 12px;
+  padding: 7px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13px;
-  width: 160px;
+  width: 120px;
 }
 .stock-input:focus { border-color: var(--primary); outline: none; }
 
@@ -193,22 +213,21 @@ onMounted(() => load(1));
 }
 .news-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border-light);
   text-decoration: none;
   color: inherit;
   transition: background 0.15s;
-  gap: 16px;
+  gap: 8px;
 }
 .news-row:last-child { border-bottom: none; }
 .news-row:hover { background: var(--bg-secondary); text-decoration: none; }
 
-.news-main {
+.news-title-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
   min-width: 0;
 }
@@ -218,15 +237,10 @@ onMounted(() => load(1));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
 }
-.cat-tag {
-  font-size: 11px;
-  padding: 1px 5px;
-  border-radius: 3px;
-  background: var(--bg-secondary);
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
+
 .stock-tags {
   display: inline-flex;
   gap: 4px;
@@ -236,31 +250,31 @@ onMounted(() => load(1));
   font-size: 11px;
   padding: 1px 6px;
   border-radius: 3px;
-  background: var(--primary-light);
-  color: var(--primary);
+  background: #e8f4fd;
+  color: #2563eb;
   text-decoration: none;
   font-weight: 500;
+  white-space: nowrap;
 }
 .stock-tag:hover {
-  background: var(--primary);
+  background: #2563eb;
   color: white;
 }
-
-.news-meta {
+.news-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 .source-tag {
   font-size: 11px;
-  padding: 2px 6px;
+  padding: 1px 6px;
   background: var(--bg-secondary);
   border-radius: 4px;
   color: var(--text-muted);
 }
 .news-time {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
   font-family: monospace;
   white-space: nowrap;
@@ -270,8 +284,8 @@ onMounted(() => load(1));
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-top: 16px;
+  gap: 12px;
+  margin-top: 12px;
   font-size: 13px;
   color: var(--text-secondary);
 }
@@ -288,7 +302,23 @@ onMounted(() => load(1));
 .empty { text-align: center; padding: 40px; color: var(--text-muted); }
 
 @media (max-width: 640px) {
-  .filters { flex-direction: column; }
+  .news-list-page { padding: 12px; }
+  .page-header h2 { font-size: 16px; }
+  .filter-toggle { display: block; }
+  .filters {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .filters.open { display: flex; }
+  .filter-row { flex-direction: column; gap: 6px; }
+  .select { width: 100%; }
   .stock-input { width: 100%; }
+  .news-row { padding: 10px 12px; }
+  .news-title { font-size: 13px; }
+  .news-bottom { gap: 6px; }
+  .pagination { gap: 8px; font-size: 12px; }
+  .btn { padding: 5px 10px; font-size: 12px; }
 }
 </style>
