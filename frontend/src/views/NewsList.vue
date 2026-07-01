@@ -2,9 +2,14 @@
   <div class="news-list-page">
     <div class="page-header">
       <h2>资讯列表</h2>
-      <button class="filter-toggle" @click="showFilter = !showFilter">
-        {{ showFilter ? '收起筛选' : '筛选' }}
-      </button>
+      <div class="header-actions">
+        <button class="refresh-btn" @click="load(page)" :disabled="loading">
+          {{ loading ? '加载中...' : '刷新' }}
+        </button>
+        <button class="filter-toggle" @click="showFilter = !showFilter">
+          {{ showFilter ? '收起' : '筛选' }}
+        </button>
+      </div>
     </div>
 
     <div class="filters" :class="{ open: showFilter }">
@@ -51,6 +56,7 @@
         :key="n.id"
         :to="`/news/${n.id}`"
         class="news-row"
+        target="_blank"
       >
         <span :class="['badge', sentimentClass(n.sentiment)]">{{ sentimentText(n.sentiment) }}</span>
         <span class="news-title-wrap">
@@ -73,9 +79,9 @@
     </div>
 
     <div class="pagination" v-if="total > pageSize">
-      <button class="btn" :disabled="page <= 1" @click="load(page - 1)">上一页</button>
+      <button class="btn" :disabled="page <= 1" @click="goPage(page - 1)">上一页</button>
       <span>{{ page }}/{{ Math.ceil(total / pageSize) }} ({{ total }}条)</span>
-      <button class="btn" :disabled="page >= Math.ceil(total / pageSize)" @click="load(page + 1)">下一页</button>
+      <button class="btn" :disabled="page >= Math.ceil(total / pageSize)" @click="goPage(page + 1)">下一页</button>
     </div>
   </div>
 </template>
@@ -104,6 +110,7 @@ const items = ref<NewsItem[]>([]);
 const page = ref(1);
 const pageSize = 30;
 const total = ref(0);
+const loading = ref(false);
 const showFilter = ref(false);
 const sortBy = ref("time_desc");
 const filterSource = ref("");
@@ -113,6 +120,7 @@ const filterStock = ref("");
 let stockTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function load(p: number) {
+  loading.value = true;
   page.value = p;
   const params = new URLSearchParams({ page: String(p), page_size: String(pageSize) });
   if (sortBy.value) params.set("sort", sortBy.value);
@@ -125,6 +133,12 @@ async function load(p: number) {
     items.value = res.data.items;
     total.value = res.data.total;
   }
+  loading.value = false;
+}
+
+function goPage(p: number) {
+  load(p);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function onStockSearch() {
@@ -167,6 +181,20 @@ onMounted(() => load(1));
   margin-bottom: 12px;
 }
 .page-header h2 { font-size: 18px; font-weight: 700; }
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+.refresh-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-size: 13px;
+  cursor: pointer;
+}
+.refresh-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .filter-toggle {
   display: none;
   padding: 6px 12px;
@@ -315,10 +343,44 @@ onMounted(() => load(1));
   .filter-row { flex-direction: column; gap: 6px; }
   .select { width: 100%; }
   .stock-input { width: 100%; }
-  .news-row { padding: 10px 12px; }
-  .news-title { font-size: 13px; }
-  .news-bottom { gap: 6px; }
-  .pagination { gap: 8px; font-size: 12px; }
-  .btn { padding: 5px 10px; font-size: 12px; }
+
+  /* 移动端：改为卡片式布局 */
+  .news-row {
+    flex-wrap: wrap;
+    padding: 12px;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .news-title-wrap {
+    flex-basis: 100%;
+    order: 1;
+  }
+  .news-title {
+    font-size: 15px;
+    white-space: normal;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+  .stock-tags {
+    flex-wrap: wrap;
+    order: 2;
+    gap: 6px;
+  }
+  .stock-tag {
+    font-size: 12px;
+    padding: 2px 8px;
+  }
+  .news-right {
+    order: 3;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .pagination {
+    gap: 8px;
+    font-size: 12px;
+    flex-wrap: wrap;
+  }
+  .btn { padding: 8px 16px; font-size: 13px; }
 }
 </style>
