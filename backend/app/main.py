@@ -75,13 +75,24 @@ def create_app() -> FastAPI:
     if frontend_dist.exists():
         app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="assets")
 
-        @app.get("/{full_path:path}")
-        async def serve_spa(request: Request, full_path: str):
-            """SPA catch-all：非API路径返回前端页面"""
-            file_path = frontend_dist / full_path
+        @app.middleware("http")
+        async def serve_spa_middleware(request: Request, call_next):
+            """SPA catch-all：非API/静态路径返回前端页面"""
+            path = request.url.path
+            # API和文档路径直接放行
+            if path.startswith("/api/") or path.startswith("/docs") or path.startswith("/openapi") or path == "/health":
+                return await call_next(request)
+            # 静态资源路径直接放行
+            if path.startswith("/assets/"):
+                return await call_next(request)
+            # 尝试返回静态文件
+            file_path = frontend_dist / path.lstrip("/")
             if file_path.is_file():
                 return FileResponse(file_path)
-            return FileResponse(frontend_dist / "index.html")
+            # 其他路径返回 index.html（SPA路由）
+            if not path.startswith("/api"):
+                return FileResponse(frontend_dist / "index.html")
+            return await call_next(request)
 
     return app
 

@@ -16,7 +16,7 @@ PROJECT_DIR = SCRIPT_DIR.parent
 CONFIG_FILE = SCRIPT_DIR / "config.yaml"
 
 EXCLUDE = {
-    ".venv", "venv", "__pycache__", ".git", "node_modules", "dist",
+    ".venv", "venv", "__pycache__", ".git", "node_modules",
     "data", "logs", ".DS_Store",
     "deploy/config.yaml", "app.log", "app.pid",
 }
@@ -101,10 +101,29 @@ def deploy(config, archive):
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(host, port=port, username=user, password=password)
 
-    # SFTP 上传
+    # SFTP 上传项目包
     sftp = ssh.open_sftp()
     with sftp.file(remote_tmp, "wb") as f:
         f.write(archive.getvalue())
+
+    # 上传本地数据库（仅当文件大小变化时）
+    local_db = PROJECT_DIR / "backend" / "data" / "stock_v2.db"
+    if local_db.exists():
+        remote_db = f"{remote_dir}/backend/data/stock_v2.db"
+        need_upload = True
+        try:
+            remote_stat = sftp.stat(remote_db)
+            local_size = local_db.stat().st_size
+            if remote_stat.st_size == local_size:
+                need_upload = False
+                print(f"  数据库未变化，跳过上传")
+        except FileNotFoundError:
+            pass
+        if need_upload:
+            print(f"  上传数据库 ({local_db.stat().st_size / 1024 / 1024:.1f} MB)...")
+            sftp.put(str(local_db), remote_db)
+            print("  数据库上传完成 ✓")
+
     sftp.close()
     print("  上传完成 ✓")
 

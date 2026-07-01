@@ -2,6 +2,7 @@ import axios from "axios";
 import type { ApiResponse } from "../types";
 
 const api = axios.create({
+  baseURL: import.meta.env.BASE_URL || "/",
   timeout: 30000,
 });
 
