@@ -152,6 +152,20 @@ async def import_valuation(background_tasks: BackgroundTasks):
     return ok({"message": "估值数据更新任务已触发"})
 
 
+@router.post("/import/turnover")
+async def import_turnover(background_tasks: BackgroundTasks):
+    """触发全市场成交额数据更新"""
+    background_tasks.add_task(_run_import_turnover)
+    return ok({"message": "成交额数据更新任务已触发"})
+
+
+@router.post("/import/kline")
+async def import_kline(background_tasks: BackgroundTasks, limit: int = Query(200, ge=1, le=1000)):
+    """触发热门股票K线数据采集"""
+    background_tasks.add_task(_run_import_kline, limit)
+    return ok({"message": f"K线数据采集任务已触发（最多{limit}只）"})
+
+
 @router.post("/import/financials")
 async def import_financials(background_tasks: BackgroundTasks, limit: int = Query(100, ge=1, le=500)):
     """触发财务数据采集"""
@@ -306,6 +320,26 @@ async def _run_import_valuation():
         await admin_service.log_action("import_valuation", "估值数据更新完成", "success")
     except Exception as e:
         await admin_service.log_action("import_valuation", f"更新失败: {e}", "failed")
+
+
+async def _run_import_turnover():
+    try:
+        await admin_service.log_action("import_turnover", "开始更新成交额数据", "running")
+        from app.tasks.import_fundamentals import import_turnover
+        await import_turnover()
+        await admin_service.log_action("import_turnover", "成交额数据更新完成", "success")
+    except Exception as e:
+        await admin_service.log_action("import_turnover", f"更新失败: {e}", "failed")
+
+
+async def _run_import_kline(limit: int = 200):
+    try:
+        await admin_service.log_action("import_kline", f"开始采集K线数据（{limit}只）", "running")
+        from app.tasks.import_fundamentals import import_kline_batch
+        await import_kline_batch(limit=limit)
+        await admin_service.log_action("import_kline", "K线数据采集完成", "success")
+    except Exception as e:
+        await admin_service.log_action("import_kline", f"采集失败: {e}", "failed")
 
 
 async def _run_import_financials(limit: int = 100):

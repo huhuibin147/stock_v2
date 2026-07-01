@@ -82,10 +82,41 @@
           <span class="val-label">总市值</span>
           <span class="val-num">{{ formatCap(profile.stock.market_cap) }}</span>
         </div>
+        <div class="val-item" v-if="profile.stock.turnover_amount != null">
+          <span class="val-label">成交额</span>
+          <span class="val-num">{{ formatAmount(profile.stock.turnover_amount) }}</span>
+        </div>
         <div class="val-item" v-if="profile.stock.dividend_yield != null">
           <span class="val-label">股息率</span>
           <span class="val-num">{{ profile.stock.dividend_yield.toFixed(2) }}%</span>
         </div>
+      </div>
+    </div>
+
+    <!-- 近期K线 -->
+    <div v-if="klineData.length" class="card">
+      <h3>近期行情</h3>
+      <div class="table-wrap">
+        <table class="kline-table">
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th class="num">收盘</th>
+              <th class="num">涨跌%</th>
+              <th class="num">成交额</th>
+              <th class="num">换手%</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="k in klineData" :key="k.trade_date">
+              <td class="date">{{ k.trade_date }}</td>
+              <td class="num">{{ k.close != null ? k.close.toFixed(2) : '-' }}</td>
+              <td class="num" :class="pctClass(k.pct_change)">{{ k.pct_change != null ? (k.pct_change > 0 ? '+' : '') + k.pct_change.toFixed(2) + '%' : '-' }}</td>
+              <td class="num">{{ formatAmount(k.turnover) }}</td>
+              <td class="num">{{ k.turnover_rate != null ? k.turnover_rate.toFixed(2) : '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -183,12 +214,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
-import { getStockProfile, getStockFinancials } from "../api/stock";
-import type { StockProfile, FinancialRecord } from "../types";
+import { getStockProfile, getStockFinancials, getStockKline } from "../api/stock";
+import type { StockProfile, FinancialRecord, KlineRecord } from "../types";
 
 const route = useRoute();
 const profile = ref<StockProfile | null>(null);
 const financials = ref<FinancialRecord[]>([]);
+const klineData = ref<KlineRecord[]>([]);
 const loading = ref(true);
 const companyExpanded = ref(false);
 
@@ -198,10 +230,14 @@ async function loadProfile(code: string) {
   profile.value = res.code === 0 ? res.data : null;
   loading.value = false;
 
-  // 异步加载财务数据
+  // 异步加载财务数据和K线
   if (profile.value) {
-    const finRes = await getStockFinancials(code);
+    const [finRes, klineRes] = await Promise.all([
+      getStockFinancials(code),
+      getStockKline(code, 10),
+    ]);
     if (finRes.code === 0) financials.value = finRes.data;
+    if (klineRes.code === 0) klineData.value = klineRes.data;
   }
 }
 
@@ -260,6 +296,20 @@ function formatMoney(val?: number | null) {
   if (Math.abs(val) >= 1e8) return (val / 1e8).toFixed(1) + "亿";
   if (Math.abs(val) >= 1e4) return (val / 1e4).toFixed(0) + "万";
   return val.toFixed(0);
+}
+
+function formatAmount(val?: number | null) {
+  if (val == null) return "-";
+  if (val >= 1e8) return (val / 1e8).toFixed(1) + "亿";
+  if (val >= 1e4) return (val / 1e4).toFixed(0) + "万";
+  return val.toLocaleString();
+}
+
+function pctClass(val?: number | null) {
+  if (val == null) return "";
+  if (val > 0) return "pct-up";
+  if (val < 0) return "pct-down";
+  return "";
 }
 
 onMounted(() => loadProfile(route.params.code as string));
@@ -502,4 +552,28 @@ watch(() => route.params.code, (c) => { if (c) loadProfile(c as string); });
   color: var(--text-secondary);
   font-size: 14px;
 }
+
+/* K线表格 */
+.kline-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.kline-table th {
+  background: var(--bg-secondary);
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
+}
+.kline-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-light);
+}
+.kline-table tr:last-child td { border-bottom: none; }
+.kline-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.kline-table .date { font-family: monospace; font-size: 12px; color: var(--text-muted); }
+.pct-up { color: var(--primary); }
+.pct-down { color: var(--success); }
 </style>

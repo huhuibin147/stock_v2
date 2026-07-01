@@ -62,7 +62,7 @@ async def import_stocks():
                     market = "SH"
                 elif code.startswith(("0", "3")):
                     market = "SZ"
-                elif code.startswith(("4", "8")):
+                elif code.startswith(("4", "8", "9")):
                     market = "BJ"
                 else:
                     market = "OTHER"

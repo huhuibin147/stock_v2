@@ -56,20 +56,18 @@ async def _get_stats(db) -> dict:
 
 
 async def _get_hot_stocks(db, limit: int = 12) -> list[dict]:
-    """按关联资讯数排序的热门股票"""
+    """按成交额排序的热门股票"""
     cursor = await db.execute(
-        """SELECT s.code, s.name, s.market, s.industry, COUNT(ns.id) as news_count
+        """SELECT s.code, s.name, s.market, s.industry, s.turnover_amount
            FROM stocks s
-           LEFT JOIN news_stocks ns ON s.code = ns.stock_code
-           WHERE s.is_active = 1
-           GROUP BY s.code
-           ORDER BY news_count DESC
+           WHERE s.is_active = 1 AND s.turnover_amount > 0
+           ORDER BY s.turnover_amount DESC
            LIMIT ?""",
         (limit,),
     )
     rows = await cursor.fetchall()
     return [
-        {"code": r[0], "name": r[1], "market": r[2], "industry": r[3], "news_count": r[4]}
+        {"code": r[0], "name": r[1], "market": r[2], "industry": r[3], "turnover_amount": r[4]}
         for r in rows
     ]
 

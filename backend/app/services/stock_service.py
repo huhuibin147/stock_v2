@@ -6,7 +6,26 @@ from app.core.database import get_db
 logger = structlog.get_logger()
 
 
-async def list_stocks(page: int = 1, page_size: int = 20, industry: str = "", q: str = "") -> dict:
+VALID_SORT_FIELDS = {
+    "code": "s.code",
+    "name": "s.name",
+    "market_cap": "s.market_cap",
+    "pe_ttm": "s.pe_ttm",
+    "pb": "s.pb",
+    "turnover_amount": "s.turnover_amount",
+    "pct_change": "s.pct_change",
+    "volume": "s.volume",
+}
+
+
+async def list_stocks(
+    page: int = 1,
+    page_size: int = 20,
+    industry: str = "",
+    q: str = "",
+    sort: str = "market_cap",
+    order: str = "desc",
+) -> dict:
     """分页查询股票列表"""
     db = await get_db()
     try:
@@ -21,6 +40,11 @@ async def list_stocks(page: int = 1, page_size: int = 20, industry: str = "", q:
 
         where_sql = " AND ".join(where)
 
+        # 排序
+        sort_col = VALID_SORT_FIELDS.get(sort, "s.market_cap")
+        order_dir = "ASC" if order.lower() == "asc" else "DESC"
+        order_sql = f"{sort_col} {order_dir} NULLS LAST, s.code"
+
         # 总数
         cursor = await db.execute(f"SELECT COUNT(*) FROM stocks s WHERE {where_sql}", params)
         total = (await cursor.fetchone())[0]
@@ -29,10 +53,11 @@ async def list_stocks(page: int = 1, page_size: int = 20, industry: str = "", q:
         offset = (page - 1) * page_size
         cursor = await db.execute(
             f"""SELECT s.code, s.name, s.market, s.industry, s.concepts, s.core_business,
-                       s.pe_ttm, s.pb, s.market_cap
+                       s.pe_ttm, s.pb, s.market_cap, s.turnover_amount,
+                       s.last_price, s.pct_change, s.volume
                 FROM stocks s
                 WHERE {where_sql}
-                ORDER BY s.market_cap DESC NULLS LAST, s.code
+                ORDER BY {order_sql}
                 LIMIT ? OFFSET ?""",
             params + [page_size, offset],
         )
@@ -55,6 +80,10 @@ async def list_stocks(page: int = 1, page_size: int = 20, industry: str = "", q:
                 "pe_ttm": r[6],
                 "pb": r[7],
                 "market_cap": r[8],
+                "turnover_amount": r[9],
+                "last_price": r[10],
+                "pct_change": r[11],
+                "volume": r[12],
             })
 
         return {"items": items, "total": total, "page": page, "page_size": page_size}
@@ -88,7 +117,7 @@ async def get_stock_by_code(code: str) -> dict | None:
     db = await get_db()
     try:
         cursor = await db.execute(
-            "SELECT code, name, market, industry, concepts, core_business, chain_id, pe_ttm, pb, market_cap, dividend_yield FROM stocks WHERE code = ?",
+            "SELECT code, name, market, industry, concepts, core_business, chain_id, pe_ttm, pb, market_cap, dividend_yield, last_price, pct_change, turnover_amount, volume FROM stocks WHERE code = ?",
             (code,),
         )
         row = await cursor.fetchone()
@@ -244,6 +273,40 @@ async def get_stock_financials(code: str, limit: int = 8) -> list[dict]:
         await db.close()
 
 
+async def get_stock_kline(code: str, limit: int = 10) -> list[dict]:
+    """获取股票日K线数据"""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """SELECT trade_date, open, close, high, low, volume, turnover,
+                      amplitude, pct_change, change_amount, turnover_rate
+               FROM stock_kline
+               WHERE code = ?
+               ORDER BY trade_date DESC
+               LIMIT ?""",
+            (code, limit),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "trade_date": r[0],
+                "open": r[1],
+                "close": r[2],
+                "high": r[3],
+                "low": r[4],
+                "volume": r[5],
+                "turnover": r[6],
+                "amplitude": r[7],
+                "pct_change": r[8],
+                "change_amount": r[9],
+                "turnover_rate": r[10],
+            }
+            for r in rows
+        ]
+    finally:
+        await db.close()
+
+
 # ── 内部辅助 ──
 
 
@@ -266,6 +329,10 @@ def _row_to_stock(row) -> dict:
         "pb": row[8] if len(row) > 8 else None,
         "market_cap": row[9] if len(row) > 9 else None,
         "dividend_yield": row[10] if len(row) > 10 else None,
+        "last_price": row[11] if len(row) > 11 else None,
+        "pct_change": row[12] if len(row) > 12 else None,
+        "turnover_amount": row[13] if len(row) > 13 else None,
+        "volume": row[14] if len(row) > 14 else None,
     }
 
 

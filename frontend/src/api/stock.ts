@@ -1,5 +1,5 @@
 import { get } from "./request";
-import type { StockInfo, StockProfile, NewsItem, NewsDetail, EventItem, FinancialRecord } from "../types";
+import type { StockInfo, StockProfile, NewsItem, NewsDetail, EventItem, FinancialRecord, KlineRecord } from "../types";
 
 export function searchStocks(q: string, limit = 10) {
   return get<StockInfo[]>(`/api/v1/stocks/search?q=${encodeURIComponent(q)}&limit=${limit}`);
@@ -23,6 +23,10 @@ export function getStockFinancials(code: string, limit = 8) {
   return get<FinancialRecord[]>(`/api/v1/stocks/${code}/financials?limit=${limit}`);
 }
 
+export function getStockKline(code: string, limit = 10) {
+  return get<KlineRecord[]>(`/api/v1/stocks/${code}/kline?limit=${limit}`);
+}
+
 export function getHotNews(limit = 20) {
   return get<NewsItem[]>(`/api/v1/news/hot?limit=${limit}`);
 }
@@ -33,7 +37,7 @@ export function getNewsDetail(id: number) {
 
 export interface OverviewData {
   stats: { stocks: number; news: number; concepts: number; events: number; chains: number };
-  hot_stocks: { code: string; name: string; market: string; industry: string; news_count: number }[];
+  hot_stocks: { code: string; name: string; market: string; industry: string; turnover_amount: number | null }[];
   hot_concepts: { name: string; stock_count: number; hot_score: number }[];
   recent_events: { event_type: string; title: string; impact: number; event_date: string; stock_codes: string[] }[];
   recent_news: NewsItem[];

@@ -9,6 +9,24 @@ export interface StockInfo {
   pb?: number | null;
   market_cap?: number | null;
   dividend_yield?: number | null;
+  turnover_amount?: number | null;
+  last_price?: number | null;
+  pct_change?: number | null;
+  volume?: number | null;
+}
+
+export interface KlineRecord {
+  trade_date: string;
+  open: number | null;
+  close: number | null;
+  high: number | null;
+  low: number | null;
+  volume: number | null;
+  turnover: number | null;
+  amplitude: number | null;
+  pct_change: number | null;
+  change_amount: number | null;
+  turnover_rate: number | null;
 }
 
 export interface ChainPosition {
@@ -99,7 +117,7 @@ export interface HotStock {
   name: string;
   market: string;
   industry: string;
-  news_count: number;
+  turnover_amount: number | null;
 }
 
 export interface HotConcept {

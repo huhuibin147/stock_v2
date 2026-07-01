@@ -81,7 +81,7 @@
         <div class="col">
           <h2 class="section-title">
             热门公司
-            <span class="count">按关联资讯数</span>
+            <span class="count">按成交额</span>
             <router-link to="/stocks" class="view-all">查看全部 →</router-link>
           </h2>
           <div class="card stock-list">
@@ -96,7 +96,7 @@
               <span class="stock-name">{{ s.name }}</span>
               <span class="stock-code-tag">{{ s.code }}.{{ s.market }}</span>
               <span v-if="s.industry" class="stock-ind">{{ s.industry }}</span>
-              <span class="news-badge" v-if="s.news_count">{{ s.news_count }}</span>
+              <span class="turnover-badge">{{ formatAmount(s.turnover_amount) }}</span>
             </router-link>
           </div>
         </div>
@@ -222,6 +222,12 @@ function impactClass(impact?: number) {
 function formatTime(t?: string) {
   if (!t) return "";
   return t.replace("T", " ").substring(0, 16);
+}
+function formatAmount(val?: number | null) {
+  if (val == null) return "-";
+  if (val >= 1e8) return (val / 1e8).toFixed(1) + "亿";
+  if (val >= 1e4) return (val / 1e4).toFixed(0) + "万";
+  return val.toLocaleString();
 }
 
 onMounted(async () => {
@@ -386,15 +392,12 @@ a.stat-chip:hover { opacity: 0.8; text-decoration: none; }
 .stock-name { font-weight: 500; font-size: 14px; }
 .stock-code-tag { font-family: "SF Mono", monospace; font-size: 11px; color: var(--text-muted); }
 .stock-ind { font-size: 11px; color: var(--text-muted); margin-left: auto; }
-.news-badge {
-  background: var(--primary-light);
-  color: var(--primary);
+.turnover-badge {
   font-size: 11px;
   font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 10px;
-  min-width: 20px;
-  text-align: center;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* Event List */

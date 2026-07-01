@@ -110,10 +110,22 @@ export function triggerImportValuation() {
   return post("/api/v1/admin/import/valuation");
 }
 
+export function triggerImportTurnover() {
+  return post("/api/v1/admin/import/turnover");
+}
+
+export function triggerImportKline(limit = 200) {
+  return post(`/api/v1/admin/import/kline?limit=${limit}`);
+}
+
 export function triggerImportFinancials(limit = 100) {
   return post(`/api/v1/admin/import/financials?limit=${limit}`);
 }
 
 export function triggerMapChains() {
   return post("/api/v1/admin/map/chains");
+}
+
+export function triggerCollectCninfo() {
+  return post("/api/v1/admin/collect/cninfo");
 }

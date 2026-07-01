@@ -46,8 +46,8 @@ class CninfoCollector(BaseCollector):
         "信息变更": 0.05,
     }
 
-    async def collect(self, max_pages: int = 5) -> list[RawNews]:
-        """采集最近 1~2 个交易日的公告"""
+    async def collect(self, max_pages: int = 5, hot_codes: set[str] | None = None) -> list[RawNews]:
+        """采集最近 1~2 个交易日的公告。hot_codes 为空时采集全部，否则只采集热门股票。"""
         try:
             import akshare as ak
         except ImportError:
@@ -59,7 +59,7 @@ class CninfoCollector(BaseCollector):
         for days_ago in range(7):
             date = (datetime.now() - timedelta(days=days_ago)).strftime("%Y%m%d")
             try:
-                items = await self._fetch_date(ak, date)
+                items = await self._fetch_date(ak, date, hot_codes)
                 raw_items.extend(items)
             except Exception as e:
                 logger.warning("cninfo_fetch_failed", date=date, error=str(e))
@@ -67,11 +67,12 @@ class CninfoCollector(BaseCollector):
         deduped = self._deduplicate(raw_items)
         important = self._filter_important(deduped)
         logger.info("collect_done", source=self.source, raw=len(raw_items),
-                     deduped=len(deduped), important=len(important))
+                     deduped=len(deduped), important=len(important),
+                     hot_filter=hot_codes is not None)
         return important
 
-    async def _fetch_date(self, ak, date: str) -> list[RawNews]:
-        """获取指定日期的公告"""
+    async def _fetch_date(self, ak, date: str, hot_codes: set[str] | None = None) -> list[RawNews]:
+        """获取指定日期的公告。hot_codes 不为空时只保留热门股票。"""
         import asyncio
 
         # AKShare 是同步调用，放到线程池执行
@@ -95,6 +96,10 @@ class CninfoCollector(BaseCollector):
                 continue
             # 过滤非 A 股代码（北交所 4/8 开头也保留）
             if not code[0] in ("0", "3", "4", "6", "8"):
+                continue
+
+            # 热门股票过滤
+            if hot_codes is not None and code not in hot_codes:
                 continue
 
             notice_type = str(row.get("公告类型", "")).strip()

@@ -74,6 +74,20 @@
         </button>
       </div>
       <div class="action-card">
+        <div class="action-title">成交额数据更新</div>
+        <div class="action-desc">全市场成交额，用于热门股票筛选</div>
+        <button class="btn btn-primary" @click="doAction('turnover')" :disabled="loading.turnover">
+          {{ loading.turnover ? '更新中...' : '立即更新' }}
+        </button>
+      </div>
+      <div class="action-card">
+        <div class="action-title">K线数据采集</div>
+        <div class="action-desc">热门股票日K线（前500只，近5日）</div>
+        <button class="btn btn-primary" @click="doAction('kline')" :disabled="loading.kline">
+          {{ loading.kline ? '采集中...' : '立即采集' }}
+        </button>
+      </div>
+      <div class="action-card">
         <div class="action-title">财务数据采集</div>
         <div class="action-desc">同花顺源，22项关键指标×最近8季度</div>
         <button class="btn btn-primary" @click="doAction('financials')" :disabled="loading.financials">
@@ -85,6 +99,13 @@
         <div class="action-desc">将股票匹配到五层产业链节点</div>
         <button class="btn btn-primary" @click="doAction('mapChains')" :disabled="loading.mapChains">
           {{ loading.mapChains ? '映射中...' : '立即映射' }}
+        </button>
+      </div>
+      <div class="action-card">
+        <div class="action-title">巨潮公告采集</div>
+        <div class="action-desc">热门股票公告（成交额≥10亿前500）</div>
+        <button class="btn btn-primary" @click="doAction('cninfo')" :disabled="loading.cninfo">
+          {{ loading.cninfo ? '采集中...' : '立即采集' }}
         </button>
       </div>
     </div>
@@ -117,8 +138,8 @@ import { ref, reactive, onMounted } from "vue";
 import {
   getSystemStatus, getAdminLogs,
   triggerImportStocks, triggerImportConcepts, triggerImportConceptStocks,
-  triggerCollectEastmoney, triggerCollectTHS, triggerCollectSina, triggerCollectAll,
-  triggerImportValuation, triggerImportFinancials, triggerMapChains,
+  triggerCollectEastmoney, triggerCollectTHS, triggerCollectSina, triggerCollectAll, triggerCollectCninfo,
+  triggerImportValuation, triggerImportTurnover, triggerImportKline, triggerImportFinancials, triggerMapChains,
 } from "../../api/admin";
 import type { SystemStatus, AdminLog } from "../../api/admin";
 
@@ -133,8 +154,11 @@ const loading = reactive({
   sina: false,
   all: false,
   valuation: false,
+  turnover: false,
+  kline: false,
   financials: false,
   mapChains: false,
+  cninfo: false,
 });
 
 const tableLabels: Record<string, string> = {
@@ -155,6 +179,8 @@ const actionLabels: Record<string, string> = {
   collect_ths: "同花顺采集",
   collect_sina: "新浪采集",
   import_valuation: "估值数据更新",
+  import_turnover: "成交额数据更新",
+  import_kline: "K线数据采集",
   import_financials: "财务数据采集",
   import_profiles: "公司概况导入",
   collect_cninfo: "巨潮公告采集",
@@ -187,8 +213,11 @@ async function doAction(type: string) {
       case "sina": res = await triggerCollectSina(); break;
       case "all": res = await triggerCollectAll(); break;
       case "valuation": res = await triggerImportValuation(); break;
+      case "turnover": res = await triggerImportTurnover(); break;
+      case "kline": res = await triggerImportKline(); break;
       case "financials": res = await triggerImportFinancials(); break;
       case "mapChains": res = await triggerMapChains(); break;
+      case "cninfo": res = await triggerCollectCninfo(); break;
     }
     if (res?.code === 0) {
       // 等一下再刷新日志

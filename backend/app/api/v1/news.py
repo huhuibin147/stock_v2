@@ -12,8 +12,11 @@ async def list_news(
     page_size: int = Query(20, ge=1, le=100),
     source: str = Query(""),
     sentiment: int | None = Query(None),
+    category: str = Query(""),
+    stock_code: str = Query(""),
+    sort: str = Query("time_desc"),
 ):
-    data = await news_service.list_news(page, page_size, source, sentiment)
+    data = await news_service.list_news(page, page_size, source, sentiment, category, stock_code, sort)
     return ok(data)
 
 

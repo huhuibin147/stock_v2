@@ -145,6 +145,26 @@ CREATE TABLE IF NOT EXISTS stock_financials (
 );
 CREATE INDEX IF NOT EXISTS idx_financials_code ON stock_financials(code);
 
+CREATE TABLE IF NOT EXISTS stock_kline (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    code            TEXT NOT NULL,
+    trade_date      TEXT NOT NULL,
+    open            REAL,
+    close           REAL,
+    high            REAL,
+    low             REAL,
+    volume          REAL,
+    turnover        REAL,
+    amplitude       REAL,
+    pct_change      REAL,
+    change_amount   REAL,
+    turnover_rate   REAL,
+    created_at      TEXT DEFAULT (datetime('now')),
+    UNIQUE(code, trade_date)
+);
+CREATE INDEX IF NOT EXISTS idx_kline_code ON stock_kline(code);
+CREATE INDEX IF NOT EXISTS idx_kline_date ON stock_kline(trade_date);
+
 CREATE TABLE IF NOT EXISTS admin_logs (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     action      TEXT NOT NULL,
@@ -190,6 +210,10 @@ async def init_db():
             "ALTER TABLE stocks ADD COLUMN pb REAL",
             "ALTER TABLE stocks ADD COLUMN market_cap REAL",
             "ALTER TABLE stocks ADD COLUMN dividend_yield REAL",
+            "ALTER TABLE stocks ADD COLUMN turnover_amount REAL",
+            "ALTER TABLE stocks ADD COLUMN last_price REAL",
+            "ALTER TABLE stocks ADD COLUMN pct_change REAL",
+            "ALTER TABLE stocks ADD COLUMN volume REAL",
         ]
         for sql in migrations:
             try:

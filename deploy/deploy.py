@@ -6,6 +6,7 @@ import sys
 import subprocess
 import tarfile
 import io
+import hashlib
 from pathlib import Path
 
 import paramiko
@@ -14,6 +15,7 @@ import yaml
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_DIR = SCRIPT_DIR.parent
 CONFIG_FILE = SCRIPT_DIR / "config.yaml"
+HASH_FILE = SCRIPT_DIR / ".deploy_hash"
 
 EXCLUDE = {
     ".venv", "venv", "__pycache__", ".git", "node_modules",
@@ -31,16 +33,103 @@ def load_config():
         return yaml.safe_load(f)
 
 
-def build_frontend():
-    """构建前端"""
+def get_frontend_hash():
+    """计算前端代码的hash"""
+    frontend_dir = PROJECT_DIR / "frontend"
+    if not frontend_dir.exists():
+        return None
+
+    files_to_hash = []
+    for root, dirs, files in os.walk(frontend_dir / "src"):
+        dirs[:] = [d for d in dirs if d not in EXCLUDE]
+        for f in files:
+            if f.endswith((".vue", ".ts", ".js", ".css")):
+                files_to_hash.append(str(Path(root) / f))
+
+    # 加上 package.json
+    pkg = frontend_dir / "package.json"
+    if pkg.exists():
+        files_to_hash.append(str(pkg))
+
+    if not files_to_hash:
+        return None
+
+    hasher = hashlib.md5()
+    for f in sorted(files_to_hash):
+        try:
+            hasher.update(Path(f).read_bytes())
+        except Exception:
+            pass
+    return hasher.hexdigest()
+
+
+def get_backend_hash():
+    """计算后端代码的hash"""
+    backend_dir = PROJECT_DIR / "backend"
+    if not backend_dir.exists():
+        return None
+
+    files_to_hash = []
+    for root, dirs, files in os.walk(backend_dir / "app"):
+        dirs[:] = [d for d in dirs if d not in EXCLUDE]
+        for f in files:
+            if f.endswith(".py"):
+                files_to_hash.append(str(Path(root) / f))
+
+    # 加上 requirements.txt 和 service.sh
+    for extra in ["requirements.txt", "../deploy/service.sh"]:
+        p = backend_dir / extra
+        if p.exists():
+            files_to_hash.append(str(p))
+
+    if not files_to_hash:
+        return None
+
+    hasher = hashlib.md5()
+    for f in sorted(files_to_hash):
+        try:
+            hasher.update(Path(f).read_bytes())
+        except Exception:
+            pass
+    return hasher.hexdigest()
+
+
+def load_deploy_hash():
+    """加载上次部署的hash"""
+    if HASH_FILE.exists():
+        data = HASH_FILE.read_text().strip().split("\n")
+        result = {}
+        for line in data:
+            if "=" in line:
+                k, v = line.split("=", 1)
+                result[k.strip()] = v.strip()
+        return result
+    return {}
+
+
+def save_deploy_hash(frontend_hash, backend_hash):
+    """保存本次部署的hash"""
+    HASH_FILE.write_text(f"frontend={frontend_hash}\nbackend={backend_hash}\n")
+
+
+def build_frontend(force=False):
+    """构建前端（仅当代码变化时）"""
     frontend_dir = PROJECT_DIR / "frontend"
     if not frontend_dir.exists():
         print("  前端目录不存在，跳过构建")
-        return
+        return False
+
+    current_hash = get_frontend_hash()
+    last_hash = load_deploy_hash().get("frontend")
+
+    if not force and current_hash == last_hash:
+        print("[1/4] 前端代码未变化，跳过构建 ✓")
+        return False
 
     print("[1/4] 构建前端...")
     subprocess.run(["npm", "run", "build"], cwd=frontend_dir, check=True)
     print("  前端构建完成 ✓")
+    return True
 
 
 def make_archive():
@@ -86,7 +175,7 @@ def make_archive():
     return buf
 
 
-def deploy(config, archive):
+def deploy(config, archive, backend_changed=True):
     """上传并部署"""
     host = config["host"]
     port = config.get("port", 22)
@@ -133,14 +222,21 @@ def deploy(config, archive):
         f"tar xzf {remote_tmp} -C {remote_dir} --strip-components=1",
         f"rm -f {remote_tmp}",
         f"mkdir -p {remote_dir}/data {remote_dir}/logs",
-        # 创建虚拟环境并安装依赖（合并为一条，cd 不能跨命令）
-        f"cd {remote_dir}/backend && python3 -m venv .venv && .venv/bin/pip install --upgrade pip -q && .venv/bin/pip install -r requirements.txt -q",
-        # nginx 配置：复制 snippet，需手动加入 itb.conf
-        f"cp {remote_dir}/deploy/nginx.conf /etc/nginx/conf.d/stock_v2.conf",
-        # 重启服务
-        f"chmod +x {remote_dir}/deploy/service.sh",
-        f"bash {remote_dir}/deploy/service.sh restart",
     ]
+
+    # 仅当后端代码变化时才重新安装依赖和重启服务
+    if backend_changed:
+        commands.extend([
+            f"cd {remote_dir}/backend && python3 -m venv .venv && .venv/bin/pip install --upgrade pip -q && .venv/bin/pip install -r requirements.txt -q",
+            f"cp {remote_dir}/deploy/nginx.conf /etc/nginx/conf.d/stock_v2.conf",
+            f"chmod +x {remote_dir}/deploy/service.sh",
+            f"bash {remote_dir}/deploy/service.sh restart",
+        ])
+    else:
+        # 只更新nginx配置（前端变化时）
+        commands.extend([
+            f"cp {remote_dir}/deploy/nginx.conf /etc/nginx/conf.d/stock_v2.conf",
+        ])
 
     for cmd in commands:
         stdin, stdout, stderr = ssh.exec_command(cmd)
@@ -161,16 +257,42 @@ def deploy(config, archive):
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Stock V2 部署脚本")
+    parser.add_argument("--force", action="store_true", help="强制重新构建前端")
+    parser.add_argument("--backend-only", action="store_true", help="仅部署后端")
+    parser.add_argument("--frontend-only", action="store_true", help="仅部署前端")
+    args = parser.parse_args()
+
     config = load_config()
 
+    # 计算当前hash
+    current_frontend_hash = get_frontend_hash()
+    current_backend_hash = get_backend_hash()
+    last_hash = load_deploy_hash()
+
+    # 判断是否有变化
+    frontend_changed = current_frontend_hash != last_hash.get("frontend")
+    backend_changed = current_backend_hash != last_hash.get("backend")
+
+    if not frontend_changed and not backend_changed and not args.force:
+        print("代码未变化，跳过部署。使用 --force 强制部署。")
+        return
+
     # 构建前端
-    build_frontend()
+    if not args.backend_only:
+        build_frontend(force=args.force)
+    else:
+        print("[1/4] 跳过前端构建（仅后端模式）")
 
     # 打包
     archive = make_archive()
 
     # 部署
-    deploy(config, archive)
+    deploy(config, archive, backend_changed=backend_changed or args.backend_only)
+
+    # 保存hash
+    save_deploy_hash(current_frontend_hash or "", current_backend_hash or "")
 
     print()
     print("=== 部署完成 ===")
@@ -178,6 +300,10 @@ def main():
     print(f"  目录: {config['remote_dir']}")
     print(f"  后端: http://{config['host']}:38080")
     print(f"  API文档: http://{config['host']}:38080/docs")
+    if frontend_changed:
+        print(f"  前端: 已更新")
+    if backend_changed:
+        print(f"  后端: 已更新")
 
 
 if __name__ == "__main__":
