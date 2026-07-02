@@ -13,3 +13,10 @@ async def industry_chain(
 ):
     data = await chain_service.get_industry_chain(layer=layer, stock_code=stock_code)
     return ok(data)
+
+
+@router.get("/chain/{chain_id}/stocks")
+async def chain_stocks(chain_id: int):
+    """获取产业链下的公司列表"""
+    data = await chain_service.get_chain_stocks(chain_id)
+    return ok(data)

@@ -101,6 +101,13 @@
           {{ loading.mapChains ? '映射中...' : '立即映射' }}
         </button>
       </div>
+      <div class="action-card highlight">
+        <div class="action-title">AI产业链重新映射</div>
+        <div class="action-desc">基于五层架构重新分类（推荐）</div>
+        <button class="btn btn-primary" @click="doAction('remapChains')" :disabled="loading.remapChains">
+          {{ loading.remapChains ? '映射中...' : '重新映射' }}
+        </button>
+      </div>
       <div class="action-card">
         <div class="action-title">巨潮公告采集</div>
         <div class="action-desc">热门股票公告（成交额≥10亿前500）</div>
@@ -140,6 +147,7 @@ import {
   triggerImportStocks, triggerImportConcepts, triggerImportConceptStocks,
   triggerCollectEastmoney, triggerCollectTHS, triggerCollectSina, triggerCollectAll, triggerCollectCninfo,
   triggerImportValuation, triggerImportTurnover, triggerImportKline, triggerImportFinancials, triggerMapChains,
+  triggerRemapChains,
 } from "../../api/admin";
 import type { SystemStatus, AdminLog } from "../../api/admin";
 
@@ -158,6 +166,7 @@ const loading = reactive({
   kline: false,
   financials: false,
   mapChains: false,
+  remapChains: false,
   cninfo: false,
 });
 
@@ -186,6 +195,7 @@ const actionLabels: Record<string, string> = {
   collect_cninfo: "巨潮公告采集",
   cleanup_news: "资讯清理",
   map_chains: "产业链映射",
+  remap_chains: "AI产业链重新映射",
 };
 
 function statusBadge(s: string) {
@@ -217,6 +227,7 @@ async function doAction(type: string) {
       case "kline": res = await triggerImportKline(); break;
       case "financials": res = await triggerImportFinancials(); break;
       case "mapChains": res = await triggerMapChains(); break;
+      case "remapChains": res = await triggerRemapChains(); break;
       case "cninfo": res = await triggerCollectCninfo(); break;
     }
     if (res?.code === 0) {

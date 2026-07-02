@@ -126,6 +126,10 @@ export function triggerMapChains() {
   return post("/api/v1/admin/map/chains");
 }
 
+export function triggerRemapChains() {
+  return post("/api/v1/admin/remap/chains");
+}
+
 export function triggerCollectCninfo() {
   return post("/api/v1/admin/collect/cninfo");
 }

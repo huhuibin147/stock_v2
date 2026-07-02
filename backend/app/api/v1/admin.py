@@ -180,6 +180,13 @@ async def map_chains(background_tasks: BackgroundTasks):
     return ok({"message": "产业链映射任务已触发"})
 
 
+@router.post("/remap/chains")
+async def remap_chains(background_tasks: BackgroundTasks):
+    """触发产业链重新映射（基于AI产业链五层架构）"""
+    background_tasks.add_task(_run_remap_chains)
+    return ok({"message": "产业链重新映射任务已触发"})
+
+
 # ── 后台任务 ──
 
 async def _run_import_stocks():
@@ -360,3 +367,13 @@ async def _run_map_chains():
         await admin_service.log_action("map_chains", "产业链映射完成", "success")
     except Exception as e:
         await admin_service.log_action("map_chains", f"映射失败: {e}", "failed")
+
+
+async def _run_remap_chains():
+    try:
+        await admin_service.log_action("remap_chains", "开始产业链重新映射", "running")
+        from app.tasks.remap_chains import run_remap
+        await run_remap()
+        await admin_service.log_action("remap_chains", "产业链重新映射完成", "success")
+    except Exception as e:
+        await admin_service.log_action("remap_chains", f"重新映射失败: {e}", "failed")

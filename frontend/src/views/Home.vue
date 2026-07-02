@@ -58,11 +58,13 @@
       <section class="section">
         <div class="section-header">
           <h2 class="section-title">五层产业链</h2>
+          <router-link to="/chains" class="view-all">查看图谱 →</router-link>
         </div>
         <div class="layers-grid">
-          <div
+          <router-link
             v-for="layer in overview.layers"
             :key="layer.layer"
+            :to="`/chains?layer=${layer.layer}`"
             class="layer-card"
             :class="`layer-${layer.layer}`"
           >
@@ -72,7 +74,7 @@
               <span>{{ layer.chain_count }} 个子行业</span>
               <span>{{ layer.stock_count }} 家公司</span>
             </div>
-          </div>
+          </router-link>
         </div>
       </section>
 
@@ -342,12 +344,16 @@ a.stat-chip:hover { opacity: 0.8; text-decoration: none; }
   padding: 16px;
   text-align: center;
   transition: all 0.2s;
-  cursor: default;
+  cursor: pointer;
   border-top: 3px solid transparent;
+  text-decoration: none;
+  color: inherit;
+  display: block;
 }
 .layer-card:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
+  text-decoration: none;
 }
 .layer-1 { border-top-color: #27ae60; }
 .layer-2 { border-top-color: #3498db; }
