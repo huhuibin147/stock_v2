@@ -4,7 +4,7 @@ from fastapi import APIRouter, Query
 
 from app.core.response import ok, fail, paginated
 from app.services import stock_service
-from app.services.realtime_service import refresh_stock_data
+from app.services.stock_refresh_service import refresh_single_stock
 
 router = APIRouter(prefix="/api/v1/stocks", tags=["stocks"])
 
@@ -34,10 +34,8 @@ async def profile(code: str):
     if not data:
         return fail(40401, f"股票 {code} 不存在")
 
-    # 后台触发实时数据更新（不阻塞响应）
-    market = data.get("stock", {}).get("market", "")
-    if market:
-        asyncio.create_task(refresh_stock_data(code, market))
+    # 后台异步刷新单股数据（不阻塞响应，带防重复）
+    asyncio.create_task(refresh_single_stock(code))
 
     return ok(data)
 

@@ -212,7 +212,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import { getStockProfile, getStockFinancials, getStockKline } from "../api/stock";
 import type { StockProfile, FinancialRecord, KlineRecord } from "../types";
@@ -223,9 +223,16 @@ const financials = ref<FinancialRecord[]>([]);
 const klineData = ref<KlineRecord[]>([]);
 const loading = ref(true);
 const companyExpanded = ref(false);
+let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function loadProfile(code: string) {
   loading.value = true;
+  // 取消之前的定时刷新
+  if (refreshTimer) {
+    clearTimeout(refreshTimer);
+    refreshTimer = null;
+  }
+
   const res = await getStockProfile(code);
   profile.value = res.code === 0 ? res.data : null;
   loading.value = false;
@@ -238,6 +245,24 @@ async function loadProfile(code: string) {
     ]);
     if (finRes.code === 0) financials.value = finRes.data;
     if (klineRes.code === 0) klineData.value = klineRes.data;
+
+    // 延迟3秒后自动刷新一次，获取后台采集的最新数据
+    refreshTimer = setTimeout(() => refreshData(code), 3000);
+  }
+}
+
+async function refreshData(code: string) {
+  try {
+    const [profileRes, klineRes] = await Promise.all([
+      getStockProfile(code),
+      getStockKline(code, 10),
+    ]);
+    if (profileRes.code === 0 && profileRes.data) {
+      profile.value = profileRes.data;
+    }
+    if (klineRes.code === 0) klineData.value = klineRes.data;
+  } catch (e) {
+    // 静默失败，不影响用户体验
   }
 }
 
@@ -313,6 +338,12 @@ function pctClass(val?: number | null) {
 }
 
 onMounted(() => loadProfile(route.params.code as string));
+onUnmounted(() => {
+  if (refreshTimer) {
+    clearTimeout(refreshTimer);
+    refreshTimer = null;
+  }
+});
 watch(() => route.params.code, (c) => { if (c) loadProfile(c as string); });
 </script>
 

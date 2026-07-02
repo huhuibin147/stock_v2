@@ -93,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { get } from "../api/request";
 
 interface StockInfo {
@@ -125,6 +125,7 @@ const filterCategory = ref("");
 const filterStock = ref("");
 const jumpPage = ref(1);
 let stockTimer: ReturnType<typeof setTimeout> | null = null;
+let autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
 async function load(p: number) {
   loading.value = true;
@@ -175,7 +176,28 @@ function formatTime(t?: string | null) {
   return t.replace("T", " ").substring(0, 16);
 }
 
-onMounted(() => load(1));
+function startAutoRefresh() {
+  // 每1分钟自动刷新，保持当前页码
+  autoRefreshTimer = setInterval(() => {
+    load(page.value);
+  }, 60000);
+}
+
+onMounted(() => {
+  load(1);
+  startAutoRefresh();
+});
+
+onUnmounted(() => {
+  if (stockTimer) {
+    clearTimeout(stockTimer);
+    stockTimer = null;
+  }
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
+  }
+});
 </script>
 
 <style scoped>

@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 
 import structlog
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -8,6 +9,59 @@ from apscheduler.triggers.cron import CronTrigger
 logger = structlog.get_logger()
 
 scheduler = AsyncIOScheduler()
+
+
+class DynamicInterval:
+    """动态间隔管理器 - 根据连续失败次数调整采集间隔"""
+
+    def __init__(self, default_seconds: int = 60, max_seconds: int = 600):
+        self.default_seconds = default_seconds
+        self.max_seconds = max_seconds
+        self.consecutive_failures = 0
+        self.consecutive_successes = 0
+
+    def record_success(self):
+        """记录成功"""
+        self.consecutive_failures = 0
+        self.consecutive_successes += 1
+        # 连续成功3次后恢复默认间隔
+        if self.consecutive_successes >= 3 and self.current_interval > self.default_seconds:
+            self.consecutive_successes = 0
+            logger.info("dynamic_interval_reset", interval=self.default_seconds)
+
+    def record_failure(self):
+        """记录失败"""
+        self.consecutive_successes = 0
+        self.consecutive_failures += 1
+
+    @property
+    def current_interval(self) -> int:
+        """获取当前间隔（秒）"""
+        if self.consecutive_failures == 0:
+            return self.default_seconds
+        # 每次失败翻倍间隔，最大不超过 max_seconds
+        interval = self.default_seconds * (2 ** min(self.consecutive_failures, 5))
+        return min(interval, self.max_seconds)
+
+    def is_trading_time(self) -> bool:
+        """判断是否为交易时间"""
+        now = datetime.now()
+        weekday = now.weekday()
+        if weekday >= 5:  # 周末
+            return False
+
+        hour = now.hour
+        minute = now.minute
+        current = hour * 100 + minute
+
+        # 9:00-11:59, 13:00-14:59
+        if (900 <= current <= 1159) or (1300 <= current <= 1459):
+            return True
+        return False
+
+
+# 行情采集动态间隔管理器
+turnover_dynamic = DynamicInterval(default_seconds=60, max_seconds=600)
 
 
 async def _run_collect():
@@ -239,10 +293,36 @@ async def _import_valuation():
     await import_valuation()
 
 
+import time as _time
+
+# 上次执行行情采集的时间戳
+_last_turnover_time: float = 0
+
+
 async def _import_turnover():
-    """更新全市场成交额数据"""
+    """更新全市场成交额数据（带动态间隔）"""
+    global _last_turnover_time
+
+    # 非交易时间跳过
+    if not turnover_dynamic.is_trading_time():
+        return
+
+    # 检查是否到了执行时间
+    now = _time.time()
+    interval = turnover_dynamic.current_interval
+    if now - _last_turnover_time < interval:
+        return
+
+    _last_turnover_time = now
+
     from app.tasks.import_fundamentals import import_turnover
-    await import_turnover()
+    try:
+        await import_turnover()
+        turnover_dynamic.record_success()
+        logger.info("turnover_success", interval=turnover_dynamic.current_interval)
+    except Exception as e:
+        turnover_dynamic.record_failure()
+        logger.warning("turnover_failed", error=str(e), next_interval=turnover_dynamic.current_interval)
 
 
 async def _import_kline():
@@ -333,10 +413,11 @@ def start_scheduler():
         id="import_turnover",
         replace_existing=True,
     )
-    # 盘中实时行情：每5分钟更新（9:30-11:30, 13:00-15:00）
+    # 盘中实时行情：动态间隔（默认1分钟，失败时自动延长）
+    # 使用30秒轮询，实际执行间隔由 DynamicInterval 控制
     scheduler.add_job(
         _import_turnover,
-        CronTrigger(minute="*/5", hour="9-11,13-14", day_of_week="mon-fri"),
+        IntervalTrigger(seconds=30),
         id="import_realtime",
         replace_existing=True,
     )

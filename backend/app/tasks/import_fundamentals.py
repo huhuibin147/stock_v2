@@ -153,45 +153,63 @@ async def import_turnover():
 
     logger.info("import_turnover_start")
 
-    try:
-        loop = asyncio.get_event_loop()
-        df = await loop.run_in_executor(None, ak.stock_zh_a_spot)
-
-        if df is None or df.empty:
-            logger.warning("turnover_empty")
-            return
-
-        db = await get_db()
+    # 重试机制：最多重试3次
+    max_retries = 3
+    last_error = None
+    for attempt in range(max_retries):
         try:
-            updated = 0
-            for _, row in df.iterrows():
-                raw_code = str(row.get("代码", "")).strip()
-                code = raw_code[-6:] if len(raw_code) >= 6 else raw_code
-                if not code or not code.isdigit():
+            loop = asyncio.get_event_loop()
+            df = await loop.run_in_executor(None, ak.stock_zh_a_spot)
+
+            if df is None or df.empty:
+                if attempt < max_retries - 1:
+                    logger.warning("turnover_empty_retry", attempt=attempt + 1)
+                    await asyncio.sleep(5)  # 等待5秒后重试
                     continue
+                logger.warning("turnover_empty")
+                raise ValueError("turnover_empty_after_retries")
 
-                amount = _safe_float(row.get("成交额"))
-                price = _safe_float(row.get("最新价"))
-                pct = _safe_float(row.get("涨跌幅"))
-                vol = _safe_float(row.get("成交量"))
+            db = await get_db()
+            try:
+                updated = 0
+                for _, row in df.iterrows():
+                    raw_code = str(row.get("代码", "")).strip()
+                    code = raw_code[-6:] if len(raw_code) >= 6 else raw_code
+                    if not code or not code.isdigit():
+                        continue
 
-                await db.execute(
-                    """UPDATE stocks SET
-                       turnover_amount = COALESCE(?, turnover_amount),
-                       last_price = ?, pct_change = ?, volume = ?,
-                       updated_at = datetime('now')
-                       WHERE code = ?""",
-                    (amount, price, pct, vol, code),
-                )
-                updated += 1
+                    amount = _safe_float(row.get("成交额"))
+                    price = _safe_float(row.get("最新价"))
+                    pct = _safe_float(row.get("涨跌幅"))
+                    vol = _safe_float(row.get("成交量"))
 
-            await db.commit()
-            logger.info("import_turnover_done", updated=updated, total=len(df))
-        finally:
-            await db.close()
+                    await db.execute(
+                        """UPDATE stocks SET
+                           turnover_amount = COALESCE(?, turnover_amount),
+                           last_price = ?, pct_change = ?, volume = ?,
+                           updated_at = datetime('now')
+                           WHERE code = ?""",
+                        (amount, price, pct, vol, code),
+                    )
+                    updated += 1
 
-    except Exception as e:
-        logger.error("import_turnover_failed", error=str(e))
+                await db.commit()
+                logger.info("import_turnover_done", updated=updated, total=len(df))
+                return  # 成功，退出重试循环
+            finally:
+                await db.close()
+
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries - 1:
+                logger.warning("import_turnover_retry", attempt=attempt + 1, error=str(e))
+                await asyncio.sleep(5)  # 等待5秒后重试
+            else:
+                logger.error("import_turnover_failed", error=str(e))
+
+    # 所有重试都失败，抛出异常让调度器记录
+    if last_error:
+        raise last_error
 
 
 async def _import_turnover_from_kline(limit: int = 500):

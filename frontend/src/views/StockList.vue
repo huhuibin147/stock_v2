@@ -62,7 +62,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted, nextTick } from "vue";
+import { onBeforeRouteLeave } from "vue-router";
 import { get } from "../api/request";
 
 interface StockItem {
@@ -83,12 +84,13 @@ interface StockItem {
 
 const items = ref<StockItem[]>([]);
 const page = ref(1);
-const pageSize = 30;
+const pageSize = 100;
 const total = ref(0);
 const searchQ = ref("");
 const sortField = ref("turnover_amount");
 const sortOrder = ref("desc");
-let timer: ReturnType<typeof setTimeout> | null = null;
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+let autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
 async function load(p: number) {
   page.value = p;
@@ -117,8 +119,38 @@ function toggleSort(field: string) {
 }
 
 function onSearch() {
-  if (timer) clearTimeout(timer);
-  timer = setTimeout(() => load(1), 300);
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => load(1), 300);
+}
+
+function isTradingTime(): boolean {
+  const now = new Date();
+  const day = now.getDay();
+  if (day === 0 || day === 6) return false; // 周末
+
+  const hour = now.getHours();
+  const minute = now.getMinutes();
+  const time = hour * 100 + minute;
+
+  // 9:00-11:59, 13:00-14:59
+  return (time >= 900 && time <= 1159) || (time >= 1300 && time <= 1459);
+}
+
+function startAutoRefresh() {
+  // 盘中每1分钟自动刷新
+  if (isTradingTime()) {
+    autoRefreshTimer = setInterval(() => {
+      if (isTradingTime()) {
+        load(page.value);
+      } else {
+        // 非交易时间停止刷新
+        if (autoRefreshTimer) {
+          clearInterval(autoRefreshTimer);
+          autoRefreshTimer = null;
+        }
+      }
+    }, 60000); // 1分钟 = 60000毫秒
+  }
 }
 
 function formatCap(val?: number | null) {
@@ -142,7 +174,37 @@ function pctClass(val?: number | null) {
   return "";
 }
 
-onMounted(() => load(1));
+// 保存滚动位置
+let savedScrollTop = 0;
+
+onBeforeRouteLeave((_to, _from, next) => {
+  // 保存当前滚动位置
+  savedScrollTop = window.scrollY;
+  next();
+});
+
+onMounted(() => {
+  load(1).then(() => {
+    // 恢复滚动位置
+    nextTick(() => {
+      if (savedScrollTop > 0) {
+        window.scrollTo(0, savedScrollTop);
+      }
+    });
+  });
+  startAutoRefresh();
+});
+
+onUnmounted(() => {
+  if (searchTimer) {
+    clearTimeout(searchTimer);
+    searchTimer = null;
+  }
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
+  }
+});
 </script>
 
 <style scoped>
