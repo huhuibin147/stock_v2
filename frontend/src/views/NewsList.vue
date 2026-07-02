@@ -65,7 +65,7 @@
             <router-link
               v-for="s in n.stocks"
               :key="s.code"
-              :to="`/stocks/${s.code}`"
+              :to="`/stock/${s.code}`"
               class="stock-tag"
               @click.stop
             >{{ s.name }}</router-link>
@@ -80,7 +80,13 @@
 
     <div class="pagination" v-if="total > pageSize">
       <button class="btn" :disabled="page <= 1" @click="goPage(page - 1)">上一页</button>
-      <span>{{ page }}/{{ Math.ceil(total / pageSize) }} ({{ total }}条)</span>
+      <span class="page-info">
+        {{ page }}/{{ Math.ceil(total / pageSize) }} ({{ total }}条)
+        <span class="page-jump">
+          跳至<input v-model.number="jumpPage" type="number" min="1" :max="Math.ceil(total / pageSize)" class="page-input" @keyup.enter="goPage(jumpPage)" />页
+          <button class="btn btn-sm" @click="goPage(jumpPage)">GO</button>
+        </span>
+      </span>
       <button class="btn" :disabled="page >= Math.ceil(total / pageSize)" @click="goPage(page + 1)">下一页</button>
     </div>
   </div>
@@ -117,6 +123,7 @@ const filterSource = ref("");
 const filterSentiment = ref("");
 const filterCategory = ref("");
 const filterStock = ref("");
+const jumpPage = ref(1);
 let stockTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function load(p: number) {
@@ -137,7 +144,10 @@ async function load(p: number) {
 }
 
 function goPage(p: number) {
-  load(p);
+  const maxPage = Math.ceil(total.value / pageSize);
+  const target = Math.max(1, Math.min(p, maxPage));
+  jumpPage.value = target;
+  load(target);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -317,6 +327,25 @@ onMounted(() => load(1));
   font-size: 13px;
   color: var(--text-secondary);
 }
+.page-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.page-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.page-input {
+  width: 50px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  text-align: center;
+}
+.page-input:focus { border-color: var(--primary); outline: none; }
 .btn {
   padding: 6px 14px;
   border: 1px solid var(--border);
@@ -325,6 +354,7 @@ onMounted(() => load(1));
   cursor: pointer;
   font-size: 13px;
 }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
 .btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .empty { text-align: center; padding: 40px; color: var(--text-muted); }
