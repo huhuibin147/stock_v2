@@ -15,6 +15,9 @@
         <router-link to="/admin/concepts" class="nav-item" active-class="active">
           <span class="nav-icon">🏷️</span> 概念管理
         </router-link>
+        <router-link to="/admin/supply-chain" class="nav-item" active-class="active">
+          <span class="nav-icon">🔗</span> 供应链管理
+        </router-link>
       </nav>
       <div class="sidebar-footer">
         <router-link to="/" class="nav-item back-link">

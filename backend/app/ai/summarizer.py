@@ -13,10 +13,13 @@ _client = None
 def _get_client():
     global _client
     if _client is None:
-        if not settings.anthropic_api_key:
+        if not settings.openai_api_key:
             return None
-        import anthropic
-        _client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+        from openai import AsyncOpenAI
+        _client = AsyncOpenAI(
+            api_key=settings.openai_api_key,
+            base_url=settings.openai_base_url,
+        )
     return _client
 
 
@@ -33,12 +36,13 @@ async def summarize(title: str, content: str | None, source: str) -> dict:
     prompt = SUMMARIZE_PROMPT.format(title=title, source=source, content_section=content_section)
 
     try:
-        response = await client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        response = await client.chat.completions.create(
+            model=settings.openai_model,
             max_tokens=500,
             messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
         )
-        text = response.content[0].text
+        text = response.choices[0].message.content
         # 提取JSON部分
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0]

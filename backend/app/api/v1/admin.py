@@ -50,6 +50,54 @@ async def concepts(
     return ok(data)
 
 
+# ── 供应链管理 ──
+
+@router.get("/supply-chain")
+async def supply_chain_list(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    target_type: str = Query(None),
+    status: str = Query(None),
+):
+    from app.services import supply_chain_service
+    data = await supply_chain_service.get_research_list(page, page_size, target_type, status)
+    return ok(data)
+
+
+@router.post("/supply-chain")
+async def supply_chain_create(
+    target_type: str,
+    target_name: str,
+    target_code: str = None,
+):
+    from app.services import supply_chain_service
+    research_id = await supply_chain_service.create_research(target_type, target_name, target_code)
+    return ok({"id": research_id, "message": "创建成功"})
+
+
+@router.put("/supply-chain/{research_id}")
+async def supply_chain_update(research_id: int, target_name: str = None, target_code: str = None, status: str = None):
+    from app.services import supply_chain_service
+    update_data = {}
+    if target_name is not None:
+        update_data["target_name"] = target_name
+    if target_code is not None:
+        update_data["target_code"] = target_code
+    if status is not None:
+        update_data["status"] = status
+
+    if update_data:
+        await supply_chain_service.update_research(research_id, **update_data)
+    return ok({"message": "更新成功"})
+
+
+@router.delete("/supply-chain/{research_id}")
+async def supply_chain_delete(research_id: int):
+    from app.services import supply_chain_service
+    await supply_chain_service.delete_research(research_id)
+    return ok({"message": "删除成功"})
+
+
 # ── 手动触发操作 ──
 
 @router.post("/import/stocks")
@@ -185,6 +233,13 @@ async def remap_chains(background_tasks: BackgroundTasks):
     """触发产业链重新映射（基于AI产业链五层架构）"""
     background_tasks.add_task(_run_remap_chains)
     return ok({"message": "产业链重新映射任务已触发"})
+
+
+@router.post("/import/concepts-ths")
+async def import_concepts_ths(backgroundTasks: BackgroundTasks):
+    """触发同花顺概念板块导入"""
+    backgroundTasks.add_task(_run_import_concepts_ths)
+    return ok({"message": "同花顺概念板块导入任务已触发"})
 
 
 # ── 后台任务 ──
@@ -377,3 +432,13 @@ async def _run_remap_chains():
         await admin_service.log_action("remap_chains", "产业链重新映射完成", "success")
     except Exception as e:
         await admin_service.log_action("remap_chains", f"重新映射失败: {e}", "failed")
+
+
+async def _run_import_concepts_ths():
+    try:
+        await admin_service.log_action("import_concepts_ths", "开始导入同花顺概念", "running")
+        from app.tasks.import_concepts_ths import run_import
+        await run_import()
+        await admin_service.log_action("import_concepts_ths", "同花顺概念导入完成", "success")
+    except Exception as e:
+        await admin_service.log_action("import_concepts_ths", f"导入失败: {e}", "failed")

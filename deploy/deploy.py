@@ -21,6 +21,7 @@ EXCLUDE = {
     ".venv", "venv", "__pycache__", ".git", "node_modules",
     "data", "logs", ".DS_Store",
     "deploy/config.yaml", "app.log", "app.pid",
+    ".env",
 }
 
 

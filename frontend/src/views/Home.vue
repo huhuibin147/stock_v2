@@ -78,7 +78,7 @@
         </div>
       </section>
 
-      <!-- 两栏：热门公司 + 最新事件 -->
+      <!-- 两栏：热门公司 + 供应链挖掘 -->
       <section class="section two-col">
         <div class="col">
           <h2 class="section-title">
@@ -104,20 +104,32 @@
         </div>
         <div class="col">
           <h2 class="section-title">
-            最新事件
-            <span class="count">按时间</span>
+            供应链挖掘
+            <span class="count">AI分析</span>
+            <router-link to="/supply-chain" class="view-all">查看全部 →</router-link>
           </h2>
-          <div class="card event-list">
-            <div v-if="!overview.recent_events.length" class="empty">暂无事件</div>
-            <div
-              v-for="(ev, i) in overview.recent_events"
-              :key="i"
-              class="event-row"
-            >
-              <span class="event-date">{{ ev.event_date || '-' }}</span>
-              <span :class="['badge', impactClass(ev.impact)]">{{ ev.event_type }}</span>
-              <span class="event-title">{{ ev.title }}</span>
+          <div class="card supply-chain-list">
+            <div v-if="!recentResearch.length" class="empty">
+              暂无研究任务
+              <router-link to="/supply-chain" class="empty-link">立即创建 →</router-link>
             </div>
+            <router-link
+              v-for="item in recentResearch"
+              :key="item.id"
+              :to="`/supply-chain/${item.id}`"
+              class="supply-chain-row"
+            >
+              <div class="sc-info">
+                <span :class="['sc-type', item.target_type]">
+                  {{ item.target_type === 'company' ? '公司' : '行业' }}
+                </span>
+                <span class="sc-name">{{ item.target_name }}</span>
+                <span v-if="item.target_code" class="sc-code">{{ item.target_code }}</span>
+              </div>
+              <span :class="['sc-status', item.status]">
+                {{ statusText(item.status) }}
+              </span>
+            </router-link>
           </div>
         </div>
       </section>
@@ -180,11 +192,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { searchStocks, getOverview } from "../api/stock";
-import type { StockInfo, OverviewData } from "../types";
+import { getRecentResearch } from "../api/supplyChain";
+import type { StockInfo, OverviewData, SupplyChainResearch } from "../types";
 
 const query = ref("");
 const results = ref<StockInfo[]>([]);
 const overview = ref<OverviewData | null>(null);
+const recentResearch = ref<SupplyChainResearch[]>([]);
 const error = ref("");
 let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -216,11 +230,6 @@ function sentimentText(s?: number) {
   if (s === -1) return "利空";
   return "中性";
 }
-function impactClass(impact?: number) {
-  if (impact === 1) return "badge-positive";
-  if (impact === -1) return "badge-negative";
-  return "badge-neutral";
-}
 function formatTime(t?: string) {
   if (!t) return "";
   return t.replace("T", " ").substring(0, 16);
@@ -232,12 +241,28 @@ function formatAmount(val?: number | null) {
   return val.toLocaleString();
 }
 
+function statusText(status: string) {
+  const map: Record<string, string> = {
+    pending: "待处理",
+    processing: "处理中",
+    completed: "已完成",
+    failed: "失败",
+  };
+  return map[status] || status;
+}
+
 onMounted(async () => {
   const res = await getOverview();
   if (res.code === 0) {
     overview.value = res.data;
   } else {
     error.value = res.message;
+  }
+
+  // 加载最近的供应链研究
+  const researchRes = await getRecentResearch(5);
+  if (researchRes.code === 0) {
+    recentResearch.value = researchRes.data;
   }
 });
 </script>
@@ -419,6 +444,89 @@ a.stat-chip:hover { opacity: 0.8; text-decoration: none; }
 .event-row:last-child { border-bottom: none; }
 .event-date { font-family: "SF Mono", monospace; font-size: 12px; color: var(--text-muted); min-width: 80px; }
 .event-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Supply Chain List */
+.supply-chain-list { padding: 0; overflow: hidden; }
+.supply-chain-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.supply-chain-row:last-child { border-bottom: none; }
+.supply-chain-row:hover { background: var(--bg-secondary); text-decoration: none; }
+.sc-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.sc-type {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.sc-type.company {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+.sc-type.industry {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+.sc-name {
+  font-weight: 500;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sc-code {
+  font-family: "SF Mono", monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.sc-status {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+.sc-status.pending {
+  background: #fff3e0;
+  color: #f57c00;
+}
+.sc-status.processing {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+.sc-status.completed {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+.sc-status.failed {
+  background: #ffebee;
+  color: #d32f2f;
+}
+.empty-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--primary);
+  font-size: 13px;
+  text-decoration: none;
+}
+.empty-link:hover {
+  text-decoration: underline;
+}
 
 /* Concepts */
 .concept-cloud {

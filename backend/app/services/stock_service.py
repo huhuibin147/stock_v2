@@ -151,6 +151,9 @@ async def get_stock_profile(code: str) -> dict | None:
         # 近7天情感分布
         sentiment_7d = await _get_sentiment_summary(db, code, days=7)
 
+        # 所属概念
+        concepts = await _get_stock_concepts(db, code)
+
         return {
             "stock": stock,
             "chain": chain,
@@ -158,6 +161,7 @@ async def get_stock_profile(code: str) -> dict | None:
             "recent_news": recent_news,
             "recent_events": recent_events,
             "sentiment_7d": sentiment_7d,
+            "concepts": concepts,
         }
     finally:
         await db.close()
@@ -458,3 +462,13 @@ async def _get_sentiment_summary(db, code: str, days: int = 7) -> dict:
         result["trend"] = "震荡"
 
     return result
+
+
+async def _get_stock_concepts(db, code: str) -> list[str]:
+    """获取股票所属概念"""
+    cursor = await db.execute(
+        "SELECT concept_name FROM stock_concepts WHERE stock_code = ? ORDER BY concept_name",
+        (code,)
+    )
+    rows = await cursor.fetchall()
+    return [row[0] for row in rows]

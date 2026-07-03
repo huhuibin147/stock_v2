@@ -62,6 +62,7 @@ def create_app() -> FastAPI:
     from app.api.v1.graph import router as graph_router
     from app.api.v1.analysis import router as analysis_router
     from app.api.v1.admin import router as admin_router
+    from app.api.v1.supply_chain import router as supply_chain_router
 
     app.include_router(health_router)
     app.include_router(stocks_router)
@@ -69,6 +70,7 @@ def create_app() -> FastAPI:
     app.include_router(graph_router)
     app.include_router(analysis_router)
     app.include_router(admin_router)
+    app.include_router(supply_chain_router)
 
     # 前端静态文件（生产模式）
     frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "dist"

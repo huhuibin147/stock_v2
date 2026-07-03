@@ -172,6 +172,47 @@ CREATE TABLE IF NOT EXISTS admin_logs (
     status      TEXT DEFAULT 'success',
     created_at  TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS supply_chain_research (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    target_type     TEXT NOT NULL,
+    target_name     TEXT NOT NULL,
+    target_code     TEXT,
+    status          TEXT DEFAULT 'pending',
+    result_summary  TEXT,
+    search_sources  TEXT,
+    created_at      TEXT DEFAULT (datetime('now')),
+    updated_at      TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS supply_chain_relations (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    research_id     INTEGER NOT NULL REFERENCES supply_chain_research(id) ON DELETE CASCADE,
+    company_name    TEXT NOT NULL,
+    company_code    TEXT,
+    relation_type   TEXT NOT NULL,
+    relation_desc   TEXT,
+    product_service TEXT,
+    cooperation_detail TEXT,
+    business_volume TEXT,
+    start_time      TEXT,
+    confidence      REAL,
+    source          TEXT,
+    source_url      TEXT,
+    news_title      TEXT,
+    news_date       TEXT,
+    created_at      TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_supply_chain_research_id ON supply_chain_relations(research_id);
+
+CREATE TABLE IF NOT EXISTS supply_chain_notes (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    research_id     INTEGER NOT NULL REFERENCES supply_chain_research(id) ON DELETE CASCADE,
+    content         TEXT NOT NULL,
+    created_at      TEXT DEFAULT (datetime('now')),
+    updated_at      TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_supply_chain_notes_research_id ON supply_chain_notes(research_id);
 """
 
 FTS_SQL = """
@@ -214,6 +255,14 @@ async def init_db():
             "ALTER TABLE stocks ADD COLUMN last_price REAL",
             "ALTER TABLE stocks ADD COLUMN pct_change REAL",
             "ALTER TABLE stocks ADD COLUMN volume REAL",
+            # 供应链挖掘新增字段
+            "ALTER TABLE supply_chain_research ADD COLUMN search_sources TEXT",
+            "ALTER TABLE supply_chain_relations ADD COLUMN cooperation_detail TEXT",
+            "ALTER TABLE supply_chain_relations ADD COLUMN business_volume TEXT",
+            "ALTER TABLE supply_chain_relations ADD COLUMN start_time TEXT",
+            "ALTER TABLE supply_chain_relations ADD COLUMN source_url TEXT",
+            "ALTER TABLE supply_chain_relations ADD COLUMN news_title TEXT",
+            "ALTER TABLE supply_chain_relations ADD COLUMN news_date TEXT",
         ]
         for sql in migrations:
             try:

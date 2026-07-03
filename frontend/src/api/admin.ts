@@ -47,89 +47,89 @@ export interface AdminConcept {
 
 // Status
 export function getSystemStatus() {
-  return get<SystemStatus>("/api/v1/admin/status");
+  return get<SystemStatus>("api/v1/admin/status");
 }
 
 export function getAdminLogs(limit = 50) {
-  return get<AdminLog[]>(`/api/v1/admin/logs?limit=${limit}`);
+  return get<AdminLog[]>(`api/v1/admin/logs?limit=${limit}`);
 }
 
 // Data
 export function getAdminStocks(page = 1, pageSize = 20, q = "") {
   return get<{ items: AdminStock[]; total: number; page: number; page_size: number }>(
-    `/api/v1/admin/stocks?page=${page}&page_size=${pageSize}&q=${encodeURIComponent(q)}`
+    `api/v1/admin/stocks?page=${page}&page_size=${pageSize}&q=${encodeURIComponent(q)}`
   );
 }
 
 export function getAdminNews(page = 1, pageSize = 20) {
   return get<{ items: AdminNews[]; total: number; page: number; page_size: number }>(
-    `/api/v1/admin/news?page=${page}&page_size=${pageSize}`
+    `api/v1/admin/news?page=${page}&page_size=${pageSize}`
   );
 }
 
 export function getAdminConcepts(page = 1, pageSize = 50) {
   return get<{ items: AdminConcept[]; total: number; page: number; page_size: number }>(
-    `/api/v1/admin/concepts?page=${page}&page_size=${pageSize}`
+    `api/v1/admin/concepts?page=${page}&page_size=${pageSize}`
   );
 }
 
 // Actions
 export function triggerImportStocks() {
-  return post("/api/v1/admin/import/stocks");
+  return post("api/v1/admin/import/stocks");
 }
 
 export function triggerImportConcepts() {
-  return post("/api/v1/admin/import/concepts");
+  return post("api/v1/admin/import/concepts");
 }
 
 export function triggerImportConceptStocks() {
-  return post("/api/v1/admin/import/concept-stocks");
+  return post("api/v1/admin/import/concept-stocks");
 }
 
 export function triggerCollectEastmoney() {
-  return post("/api/v1/admin/collect/eastmoney");
+  return post("api/v1/admin/collect/eastmoney");
 }
 
 export function triggerCollectTHS() {
-  return post("/api/v1/admin/collect/ths");
+  return post("api/v1/admin/collect/ths");
 }
 
 export function triggerCollectSina() {
-  return post("/api/v1/admin/collect/sina");
+  return post("api/v1/admin/collect/sina");
 }
 
 export function triggerCollectAll() {
-  return post("/api/v1/admin/collect/all");
+  return post("api/v1/admin/collect/all");
 }
 
 export function cleanupNews(days = 90) {
-  return post<{ deleted: number; days: number }>(`/api/v1/admin/cleanup/news?days=${days}`);
+  return post<{ deleted: number; days: number }>(`api/v1/admin/cleanup/news?days=${days}`);
 }
 
 export function triggerImportValuation() {
-  return post("/api/v1/admin/import/valuation");
+  return post("api/v1/admin/import/valuation");
 }
 
 export function triggerImportTurnover() {
-  return post("/api/v1/admin/import/turnover");
+  return post("api/v1/admin/import/turnover");
 }
 
 export function triggerImportKline(limit = 200) {
-  return post(`/api/v1/admin/import/kline?limit=${limit}`);
+  return post(`api/v1/admin/import/kline?limit=${limit}`);
 }
 
 export function triggerImportFinancials(limit = 100) {
-  return post(`/api/v1/admin/import/financials?limit=${limit}`);
+  return post(`api/v1/admin/import/financials?limit=${limit}`);
 }
 
 export function triggerMapChains() {
-  return post("/api/v1/admin/map/chains");
+  return post("api/v1/admin/map/chains");
 }
 
 export function triggerRemapChains() {
-  return post("/api/v1/admin/remap/chains");
+  return post("api/v1/admin/remap/chains");
 }
 
 export function triggerCollectCninfo() {
-  return post("/api/v1/admin/collect/cninfo");
+  return post("api/v1/admin/collect/cninfo");
 }

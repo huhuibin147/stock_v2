@@ -93,6 +93,16 @@
       </div>
     </div>
 
+    <!-- 所属概念 -->
+    <div v-if="profile.concepts && profile.concepts.length" class="card concepts-card">
+      <h3>所属概念</h3>
+      <div class="concepts-list">
+        <span v-for="concept in profile.concepts" :key="concept" class="concept-tag">
+          {{ concept }}
+        </span>
+      </div>
+    </div>
+
     <!-- 近期K线 -->
     <div v-if="klineData.length" class="card">
       <h3>近期行情</h3>
@@ -464,6 +474,33 @@ watch(() => route.params.code, (c) => { if (c) loadProfile(c as string); });
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text);
+}
+
+/* 所属概念 */
+.concepts-card {
+  padding: 16px 20px;
+}
+.concepts-card h3 {
+  margin-bottom: 12px;
+}
+.concepts-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.concept-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  background: var(--primary-light, #e3f2fd);
+  color: var(--primary, #1976d2);
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.concept-tag:hover {
+  background: var(--primary, #1976d2);
+  color: #fff;
 }
 
 /* 财务表格 */

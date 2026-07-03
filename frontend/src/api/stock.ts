@@ -2,37 +2,37 @@ import { get } from "./request";
 import type { StockInfo, StockProfile, NewsItem, NewsDetail, EventItem, FinancialRecord, KlineRecord } from "../types";
 
 export function searchStocks(q: string, limit = 10) {
-  return get<StockInfo[]>(`/api/v1/stocks/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+  return get<StockInfo[]>(`api/v1/stocks/search?q=${encodeURIComponent(q)}&limit=${limit}`);
 }
 
 export function getStockProfile(code: string) {
-  return get<StockProfile>(`/api/v1/stocks/${code}/profile`);
+  return get<StockProfile>(`api/v1/stocks/${code}/profile`);
 }
 
 export function getStockNews(code: string, page = 1, pageSize = 10) {
   return get<{ items: NewsItem[]; total: number }>(
-    `/api/v1/stocks/${code}/news?page=${page}&page_size=${pageSize}`
+    `api/v1/stocks/${code}/news?page=${page}&page_size=${pageSize}`
   );
 }
 
 export function getStockEvents(code: string) {
-  return get<EventItem[]>(`/api/v1/stocks/${code}/events`);
+  return get<EventItem[]>(`api/v1/stocks/${code}/events`);
 }
 
 export function getStockFinancials(code: string, limit = 8) {
-  return get<FinancialRecord[]>(`/api/v1/stocks/${code}/financials?limit=${limit}`);
+  return get<FinancialRecord[]>(`api/v1/stocks/${code}/financials?limit=${limit}`);
 }
 
 export function getStockKline(code: string, limit = 10) {
-  return get<KlineRecord[]>(`/api/v1/stocks/${code}/kline?limit=${limit}`);
+  return get<KlineRecord[]>(`api/v1/stocks/${code}/kline?limit=${limit}`);
 }
 
 export function getHotNews(limit = 20) {
-  return get<NewsItem[]>(`/api/v1/news/hot?limit=${limit}`);
+  return get<NewsItem[]>(`api/v1/news/hot?limit=${limit}`);
 }
 
 export function getNewsDetail(id: number) {
-  return get<NewsDetail>(`/api/v1/news/${id}`);
+  return get<NewsDetail>(`api/v1/news/${id}`);
 }
 
 export interface OverviewData {
@@ -45,5 +45,5 @@ export interface OverviewData {
 }
 
 export function getOverview() {
-  return get<OverviewData>("/api/v1/analysis/overview");
+  return get<OverviewData>("api/v1/analysis/overview");
 }

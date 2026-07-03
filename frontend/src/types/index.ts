@@ -104,6 +104,7 @@ export interface StockProfile {
   recent_news: NewsItem[];
   recent_events: EventItem[];
   sentiment_7d: SentimentSummary;
+  concepts: string[];
 }
 
 export interface ApiResponse<T = any> {
@@ -154,4 +155,64 @@ export interface OverviewData {
   recent_events: EventItem[];
   recent_news: NewsItem[];
   layers: LayerSummary[];
+}
+
+// 供应链挖掘相关类型
+export interface SupplyChainResearch {
+  id: number;
+  target_type: 'company' | 'industry';
+  target_name: string;
+  target_code?: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  result_summary?: string;
+  search_sources?: SearchSource[];
+  created_at: string;
+  updated_at: string;
+  relations?: SupplyChainRelation[];
+}
+
+export interface SearchSource {
+  title: string;
+  url: string;
+  source: string;
+}
+
+export interface SupplyChainRelation {
+  id: number;
+  company_name: string;
+  company_code?: string;
+  relation_type: string;  // 支持多种格式：upstream/downstream/partner, supplier/customer, 中文
+  relation_desc?: string;
+  product_service?: string;
+  cooperation_detail?: string;
+  business_volume?: string;
+  start_time?: string;
+  confidence?: number;
+  source?: string;
+  source_url?: string;
+  news_title?: string;
+  news_date?: string;
+}
+
+export interface SupplyChainRelationDetail extends SupplyChainRelation {
+  research_id: number;
+  research: {
+    target_type: string;
+    target_name: string;
+    target_code?: string;
+  };
+}
+
+export interface SupplyChainStats {
+  total: number;
+  completed: number;
+  relations: number;
+}
+
+export interface SupplyChainNote {
+  id: number;
+  research_id: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
 }
