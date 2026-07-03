@@ -149,7 +149,7 @@ export interface FinancialRecord {
 }
 
 export interface OverviewData {
-  stats: { stocks: number; news: number; concepts: number; events: number; chains: number };
+  stats: { stocks: number; news: number; concepts: number; events: number; chains: number; supply_chain: number; supply_chain_relations: number };
   hot_stocks: HotStock[];
   hot_concepts: HotConcept[];
   recent_events: EventItem[];

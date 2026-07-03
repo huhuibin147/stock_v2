@@ -93,16 +93,6 @@
       </div>
     </div>
 
-    <!-- 所属概念 -->
-    <div v-if="profile.concepts && profile.concepts.length" class="card concepts-card">
-      <h3>所属概念</h3>
-      <div class="concepts-list">
-        <span v-for="concept in profile.concepts" :key="concept" class="concept-tag">
-          {{ concept }}
-        </span>
-      </div>
-    </div>
-
     <!-- 近期K线 -->
     <div v-if="klineData.length" class="card">
       <h3>近期行情</h3>
@@ -179,6 +169,16 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- 所属概念 -->
+    <div v-if="profile.concepts && profile.concepts.length" class="card concepts-card">
+      <h3>所属概念</h3>
+      <div class="concepts-list">
+        <span v-for="concept in profile.concepts" :key="concept" class="concept-tag">
+          {{ concept }}
+        </span>
       </div>
     </div>
 

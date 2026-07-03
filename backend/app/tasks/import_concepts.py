@@ -176,6 +176,12 @@ async def import_concept_stocks():
         """)
         await db.commit()
 
+        # 先获取所有概念的代码映射
+        logger.info("fetching_concept_list")
+        concept_list = await fetch_concept_list()
+        concept_map = {c["name"]: c["code"] for c in concept_list}
+        logger.info("concept_list_fetched", count=len(concept_map))
+
         # 获取所有概念
         cursor = await db.execute("SELECT name FROM concepts")
         concepts = await cursor.fetchall()
@@ -183,13 +189,8 @@ async def import_concept_stocks():
         total = 0
         for (concept_name,) in concepts:
             try:
-                # 获取概念代码
-                concept_code = None
-                for c in await fetch_concept_list():
-                    if c["name"] == concept_name:
-                        concept_code = c["code"]
-                        break
-
+                # 从映射中获取概念代码
+                concept_code = concept_map.get(concept_name)
                 if not concept_code:
                     continue
 

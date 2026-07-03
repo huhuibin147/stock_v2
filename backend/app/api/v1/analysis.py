@@ -46,12 +46,21 @@ async def _get_stats(db) -> dict:
     cursor = await db.execute("SELECT COUNT(*) FROM industry_chains")
     chain_count = (await cursor.fetchone())[0]
 
+    # 供应链统计
+    cursor = await db.execute("SELECT COUNT(*) FROM supply_chain_research")
+    supply_chain_count = (await cursor.fetchone())[0]
+
+    cursor = await db.execute("SELECT COUNT(*) FROM supply_chain_relations")
+    supply_chain_relations = (await cursor.fetchone())[0]
+
     return {
         "stocks": stock_count,
         "news": news_count,
         "concepts": concept_count,
         "events": event_count,
         "chains": chain_count,
+        "supply_chain": supply_chain_count,
+        "supply_chain_relations": supply_chain_relations,
     }
 
 

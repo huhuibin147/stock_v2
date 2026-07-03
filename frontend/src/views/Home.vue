@@ -50,6 +50,10 @@
           <span class="stat-num">{{ overview.stats.chains.toLocaleString() }}</span>
           <span class="stat-label">产业链</span>
         </router-link>
+        <router-link to="/supply-chain" class="stat-chip">
+          <span class="stat-num">{{ overview.stats.supply_chain.toLocaleString() }}</span>
+          <span class="stat-label">供应链</span>
+        </router-link>
       </div>
     </section>
 
@@ -193,11 +197,11 @@
 import { ref, onMounted } from "vue";
 import { searchStocks, getOverview } from "../api/stock";
 import { getRecentResearch } from "../api/supplyChain";
-import type { StockInfo, OverviewData, SupplyChainResearch } from "../types";
+import type { StockInfo, SupplyChainResearch } from "../types";
 
 const query = ref("");
 const results = ref<StockInfo[]>([]);
-const overview = ref<OverviewData | null>(null);
+const overview = ref<any>(null);
 const recentResearch = ref<SupplyChainResearch[]>([]);
 const error = ref("");
 let timer: ReturnType<typeof setTimeout> | null = null;
