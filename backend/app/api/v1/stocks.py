@@ -51,12 +51,6 @@ async def news(
     return ok(data)
 
 
-@router.get("/{code}/events")
-async def events(code: str, limit: int = Query(20, ge=1, le=100)):
-    data = await stock_service.get_stock_events(code, limit)
-    return ok(data)
-
-
 @router.get("/{code}/financials")
 async def financials(code: str, limit: int = Query(8, ge=1, le=20)):
     data = await stock_service.get_stock_financials(code, limit)

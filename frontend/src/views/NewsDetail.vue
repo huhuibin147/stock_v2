@@ -79,16 +79,6 @@
         </div>
       </div>
 
-      <!-- 事件 -->
-      <div v-if="news.events && news.events.length" class="analysis-section">
-        <span class="label">事件</span>
-        <div class="tag-list">
-          <span v-for="(ev, i) in news.events" :key="i" class="tag">
-            {{ ev.type }}{{ ev.subtype ? ' · ' + ev.subtype : '' }}
-          </span>
-        </div>
-      </div>
-
       <!-- 标签 -->
       <div v-if="news.tags && news.tags.length" class="analysis-section">
         <span class="label">标签</span>
@@ -127,7 +117,6 @@ const hasAnalysis = computed(() => {
   return (
     news.value.sentiment != null ||
     (news.value.entities && news.value.entities.length > 0) ||
-    (news.value.events && news.value.events.length > 0) ||
     (news.value.tags && news.value.tags.length > 0)
   );
 });

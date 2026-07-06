@@ -29,5 +29,4 @@ class StockProfile(BaseModel):
     stock: StockInfo
     chain: ChainPosition
     recent_news: list[dict] = []
-    recent_events: list[dict] = []
     sentiment_7d: SentimentSummary

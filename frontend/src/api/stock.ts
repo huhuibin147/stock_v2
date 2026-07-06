@@ -1,5 +1,5 @@
 import { get } from "./request";
-import type { StockInfo, StockProfile, NewsItem, NewsDetail, EventItem, FinancialRecord, KlineRecord } from "../types";
+import type { StockInfo, StockProfile, NewsItem, NewsDetail, FinancialRecord, KlineRecord } from "../types";
 
 export function searchStocks(q: string, limit = 10) {
   return get<StockInfo[]>(`api/v1/stocks/search?q=${encodeURIComponent(q)}&limit=${limit}`);
@@ -13,10 +13,6 @@ export function getStockNews(code: string, page = 1, pageSize = 10) {
   return get<{ items: NewsItem[]; total: number }>(
     `api/v1/stocks/${code}/news?page=${page}&page_size=${pageSize}`
   );
-}
-
-export function getStockEvents(code: string) {
-  return get<EventItem[]>(`api/v1/stocks/${code}/events`);
 }
 
 export function getStockFinancials(code: string, limit = 8) {
@@ -36,10 +32,9 @@ export function getNewsDetail(id: number) {
 }
 
 export interface OverviewData {
-  stats: { stocks: number; news: number; concepts: number; events: number; chains: number };
+  stats: { stocks: number; news: number; concepts: number; chains: number; supply_chain: number; supply_chain_relations: number };
   hot_stocks: { code: string; name: string; market: string; industry: string; turnover_amount: number | null }[];
   hot_concepts: { name: string; stock_count: number; hot_score: number }[];
-  recent_events: { event_type: string; title: string; impact: number; event_date: string; stock_codes: string[] }[];
   recent_news: NewsItem[];
   layers: { layer: number; name: string; chain_count: number; stock_count: number }[];
 }

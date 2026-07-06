@@ -59,19 +59,10 @@ export interface NewsDetail {
   source: string | null;
   url: string | null;
   entities: { type: string; code: string; name: string }[] | null;
-  events: { type: string; subtype: string; impact: number }[] | null;
   tags: string[] | null;
   category: string | null;
   importance_score: number | null;
   stocks: { code: string; name: string }[];
-}
-
-export interface EventItem {
-  event_type: string;
-  event_subtype?: string;
-  title: string;
-  impact?: number;
-  event_date?: string;
 }
 
 export interface SentimentSummary {
@@ -102,7 +93,6 @@ export interface StockProfile {
   chain: ChainPosition;
   company: CompanyProfile | null;
   recent_news: NewsItem[];
-  recent_events: EventItem[];
   sentiment_7d: SentimentSummary;
   concepts: string[];
 }
@@ -149,10 +139,9 @@ export interface FinancialRecord {
 }
 
 export interface OverviewData {
-  stats: { stocks: number; news: number; concepts: number; events: number; chains: number; supply_chain: number; supply_chain_relations: number };
+  stats: { stocks: number; news: number; concepts: number; chains: number; supply_chain: number; supply_chain_relations: number };
   hot_stocks: HotStock[];
   hot_concepts: HotConcept[];
-  recent_events: EventItem[];
   recent_news: NewsItem[];
   layers: LayerSummary[];
 }

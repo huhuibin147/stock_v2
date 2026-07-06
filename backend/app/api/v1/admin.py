@@ -281,7 +281,6 @@ async def _run_collect_with(collector, action_name: str, max_pages: int = 3):
 
         from app.analyzers.entity_extractor import EntityExtractor
         from app.analyzers.sentiment import analyze_sentiment
-        from app.analyzers.event_detector import detect_events
         from app.ai.summarizer import summarize
         from app.services.news_service import save_news
 
@@ -295,7 +294,6 @@ async def _run_collect_with(collector, action_name: str, max_pages: int = 3):
             nlp_codes = [e.code for e in entities if e.type == "stock" and e.code]
             stock_codes = list(set(api_codes + nlp_codes))
             sentiment = analyze_sentiment(item.title)
-            events = detect_events(item.title)
             ai_result = await summarize(item.title, item.content, item.source)
 
             news_data = {
@@ -312,7 +310,6 @@ async def _run_collect_with(collector, action_name: str, max_pages: int = 3):
                 "sentiment": sentiment.label,
                 "sentiment_score": sentiment.score,
                 "entities": [{"type": e.type, "code": e.code, "name": e.name} for e in entities],
-                "events": [{"type": ev.event_type, "subtype": ev.event_subtype, "impact": ev.impact} for ev in events],
                 "tags": sentiment.keywords,
             }
 

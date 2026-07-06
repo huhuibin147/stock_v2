@@ -207,17 +207,6 @@
       </router-link>
     </div>
 
-    <!-- 事件时间线 -->
-    <div v-if="profile.recent_events.length" class="card">
-      <h3>重要事件</h3>
-      <div v-for="(ev, i) in profile.recent_events" :key="i" class="event-item">
-        <span :class="['badge', ev.impact === 1 ? 'badge-positive' : ev.impact === -1 ? 'badge-negative' : 'badge-neutral']">
-          {{ ev.event_type }}
-        </span>
-        <span class="event-title">{{ ev.title }}</span>
-        <span class="event-date">{{ ev.event_date }}</span>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -600,22 +589,6 @@ watch(() => route.params.code, (c) => { if (c) loadProfile(c as string); });
   color: var(--text-secondary);
 }
 
-.event-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-}
-.event-item:last-child { border-bottom: none; }
-.event-title {
-  flex: 1;
-  font-size: 14px;
-}
-.event-date {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
 .empty {
   color: var(--text-secondary);
   font-size: 14px;

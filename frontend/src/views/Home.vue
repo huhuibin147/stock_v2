@@ -42,10 +42,6 @@
           <span class="stat-num">{{ overview.stats.concepts.toLocaleString() }}</span>
           <span class="stat-label">概念</span>
         </router-link>
-        <div class="stat-chip">
-          <span class="stat-num">{{ overview.stats.events.toLocaleString() }}</span>
-          <span class="stat-label">事件</span>
-        </div>
         <router-link to="/chains" class="stat-chip">
           <span class="stat-num">{{ overview.stats.chains.toLocaleString() }}</span>
           <span class="stat-label">产业链</span>
@@ -435,20 +431,6 @@ a.stat-chip:hover { opacity: 0.8; text-decoration: none; }
   white-space: nowrap;
 }
 
-/* Event List */
-.event-list { padding: 0; overflow: hidden; }
-.event-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border-light);
-  font-size: 13px;
-}
-.event-row:last-child { border-bottom: none; }
-.event-date { font-family: "SF Mono", monospace; font-size: 12px; color: var(--text-muted); min-width: 80px; }
-.event-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
 /* Supply Chain List */
 .supply-chain-list { padding: 0; overflow: hidden; }
 .supply-chain-row {
@@ -615,7 +597,5 @@ a.stat-chip:hover { opacity: 0.8; text-decoration: none; }
   .news-card { padding: 12px; }
   .news-title { font-size: 14px; }
   .news-summary { font-size: 12px; }
-  .event-row { padding: 8px 12px; }
-  .event-date { font-size: 11px; min-width: 65px; }
 }
 </style>

@@ -173,7 +173,6 @@ const loading = reactive({
 const tableLabels: Record<string, string> = {
   stocks: "股票",
   news: "资讯",
-  events: "事件",
   concepts: "概念",
   industry_chains: "产业链",
   news_stocks: "资讯关联",

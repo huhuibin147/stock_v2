@@ -120,7 +120,7 @@ async def get_news_detail(news_id: int) -> dict | None:
     try:
         cursor = await db.execute(
             """SELECT id, title, content, summary, key_points, sentiment, sentiment_score,
-                      published_at, source, url, entities, events, tags,
+                      published_at, source, url, entities, tags,
                       category, importance_score
                FROM news WHERE id = ?""",
             (news_id,),
@@ -159,10 +159,9 @@ async def get_news_detail(news_id: int) -> dict | None:
             "source": row[8],
             "url": row[9],
             "entities": parse_json(row[10]),
-            "events": parse_json(row[11]),
-            "tags": parse_json(row[12]),
-            "category": row[13],
-            "importance_score": row[14],
+            "tags": parse_json(row[11]),
+            "category": row[12],
+            "importance_score": row[13],
             "stocks": stocks,
         }
     finally:
@@ -200,8 +199,8 @@ async def save_news(news_data: dict, stock_codes: list[str] | None = None) -> in
             """INSERT INTO news
                (source, source_id, title, content, summary, key_points, url, published_at,
                 category, importance_score, sentiment, sentiment_score,
-                entities, events, tags, retention)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                entities, tags, retention)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 source,
                 source_id,
@@ -216,7 +215,6 @@ async def save_news(news_data: dict, stock_codes: list[str] | None = None) -> in
                 news_data.get("sentiment"),
                 news_data.get("sentiment_score"),
                 json.dumps(news_data.get("entities"), ensure_ascii=False) if news_data.get("entities") else None,
-                json.dumps(news_data.get("events"), ensure_ascii=False) if news_data.get("events") else None,
                 json.dumps(news_data.get("tags"), ensure_ascii=False) if news_data.get("tags") else None,
                 news_data.get("retention", "normal"),
             ),

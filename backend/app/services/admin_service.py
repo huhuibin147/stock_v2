@@ -41,7 +41,7 @@ async def get_system_status() -> dict:
     db = await get_db()
     try:
         stats = {}
-        for table in ["stocks", "news", "events", "concepts", "industry_chains", "news_stocks"]:
+        for table in ["stocks", "news", "concepts", "industry_chains", "news_stocks"]:
             cursor = await db.execute(f"SELECT COUNT(*) FROM {table}")
             stats[table] = (await cursor.fetchone())[0]
 
@@ -114,7 +114,7 @@ async def get_news_page(page: int = 1, page_size: int = 20) -> dict:
 
         cursor = await db.execute(
             """SELECT id, source, source_id, title, summary, sentiment,
-                      importance_score, published_at, category, entities, events
+                      importance_score, published_at, category, entities
                FROM news
                ORDER BY id DESC
                LIMIT ? OFFSET ?""",
@@ -125,13 +125,11 @@ async def get_news_page(page: int = 1, page_size: int = 20) -> dict:
         items = []
         for r in rows:
             entities = r[9]
-            events = r[10]
-            for field_val, field_name in [(entities, "entities"), (events, "events")]:
-                if isinstance(field_val, str):
-                    try:
-                        locals()[field_name] = json.loads(field_val)
-                    except (json.JSONDecodeError, TypeError):
-                        pass
+            if isinstance(entities, str):
+                try:
+                    entities = json.loads(entities)
+                except (json.JSONDecodeError, TypeError):
+                    pass
             items.append({
                 "id": r[0], "source": r[1], "source_id": r[2], "title": r[3],
                 "summary": r[4], "sentiment": r[5], "importance_score": r[6],

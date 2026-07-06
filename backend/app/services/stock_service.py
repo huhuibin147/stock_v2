@@ -145,9 +145,6 @@ async def get_stock_profile(code: str) -> dict | None:
         # 最近重要资讯
         recent_news = await _get_recent_news(db, code, limit=5)
 
-        # 最近事件
-        recent_events = await _get_recent_events(db, code, limit=5)
-
         # 近7天情感分布
         sentiment_7d = await _get_sentiment_summary(db, code, days=7)
 
@@ -159,7 +156,6 @@ async def get_stock_profile(code: str) -> dict | None:
             "chain": chain,
             "company": company,
             "recent_news": recent_news,
-            "recent_events": recent_events,
             "sentiment_7d": sentiment_7d,
             "concepts": concepts,
         }
@@ -210,35 +206,6 @@ async def get_stock_news(code: str, page: int = 1, page_size: int = 10, sentimen
         ]
 
         return {"items": items, "total": total, "page": page, "page_size": page_size}
-    finally:
-        await db.close()
-
-
-async def get_stock_events(code: str, limit: int = 20) -> list[dict]:
-    """获取个股事件时间线"""
-    db = await get_db()
-    try:
-        cursor = await db.execute(
-            """SELECT event_type, event_subtype, title, description, impact, impact_level, event_date
-               FROM events
-               WHERE stock_codes LIKE ?
-               ORDER BY event_date DESC
-               LIMIT ?""",
-            (f'%"{code}"%', limit),
-        )
-        rows = await cursor.fetchall()
-        return [
-            {
-                "event_type": r[0],
-                "event_subtype": r[1],
-                "title": r[2],
-                "description": r[3],
-                "impact": r[4],
-                "impact_level": r[5],
-                "event_date": r[6],
-            }
-            for r in rows
-        ]
     finally:
         await db.close()
 
@@ -419,17 +386,6 @@ async def _get_recent_news(db, code: str, limit: int = 5) -> list[dict]:
     )
     rows = await cursor.fetchall()
     return [{"id": r[0], "title": r[1], "summary": r[2], "sentiment": r[3], "published_at": r[4]} for r in rows]
-
-
-async def _get_recent_events(db, code: str, limit: int = 5) -> list[dict]:
-    cursor = await db.execute(
-        """SELECT event_type, title, impact, event_date
-           FROM events WHERE stock_codes LIKE ?
-           ORDER BY event_date DESC LIMIT ?""",
-        (f'%"{code}"%', limit),
-    )
-    rows = await cursor.fetchall()
-    return [{"event_type": r[0], "title": r[1], "impact": r[2], "event_date": r[3]} for r in rows]
 
 
 async def _get_sentiment_summary(db, code: str, days: int = 7) -> dict:
