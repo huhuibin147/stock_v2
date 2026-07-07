@@ -54,8 +54,8 @@ class DynamicInterval:
         minute = now.minute
         current = hour * 100 + minute
 
-        # 9:00-11:59, 13:00-14:59
-        if (900 <= current <= 1159) or (1300 <= current <= 1459):
+        # 9:00-11:59, 13:00-15:00
+        if (900 <= current <= 1159) or (1300 <= current <= 1500):
             return True
         return False
 
@@ -317,6 +317,16 @@ async def _import_kline():
     await import_kline_batch(limit=500, days=5)
 
 
+async def _import_turnover_close():
+    """收盘后立即更新全市场行情（不检查交易时间）"""
+    from app.tasks.import_fundamentals import import_turnover
+    try:
+        await import_turnover()
+        logger.info("turnover_close_success")
+    except Exception as e:
+        logger.warning("turnover_close_failed", error=str(e))
+
+
 async def _import_financials():
     """采集财务数据"""
     from app.tasks.import_fundamentals import import_financials_batch
@@ -397,6 +407,13 @@ def start_scheduler():
         _import_turnover,
         CronTrigger(hour=15, minute=35, day_of_week="mon-fri"),
         id="import_turnover",
+        replace_existing=True,
+    )
+    # 收盘后立即更新行情（15:05，不检查交易时间）
+    scheduler.add_job(
+        _import_turnover_close,
+        CronTrigger(hour=15, minute=5, day_of_week="mon-fri"),
+        id="import_turnover_close",
         replace_existing=True,
     )
     # 盘中实时行情：动态间隔（默认1分钟，失败时自动延长）
