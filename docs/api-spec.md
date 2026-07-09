@@ -52,9 +52,6 @@
     "recent_news": [
       {"id": 1, "title": "Q2营收超预期", "summary": "...", "sentiment": 1, "published_at": "..."}
     ],
-    "recent_events": [
-      {"event_type": "performance", "title": "半年度业绩预增", "impact": 1, "event_date": "2026-06-25"}
-    ],
     "sentiment_7d": {"positive": 5, "neutral": 3, "negative": 1, "trend": "偏多"}
   }
 }
@@ -69,9 +66,6 @@
 | page_size | int | 每页条数，默认10 |
 | sentiment | int | 情感筛选：-1/0/1 |
 
-### GET /stocks/:code/events
-个股事件时间线
-
 ---
 
 ## 全市场接口
@@ -83,7 +77,7 @@
 资讯详情
 
 ### GET /analysis/overview
-全市场概览（热点板块、重大事件、情感分布）
+全市场概览（热点板块、情感分布）
 
 ### GET /analysis/concepts
 概念热度排行

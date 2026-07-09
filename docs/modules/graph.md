@@ -37,7 +37,6 @@ class EdgeType(str, Enum):
     CO_CONCEPT = "co_concept"        # 同概念关联
     CO_INDUSTRY = "co_industry"      # 同行业关联
     MENTIONED_IN = "mentioned_in"    # 被提及（股票→资讯）
-    AFFECTS = "affects"              # 影响（事件→股票）
 ```
 
 ## 图谱构建

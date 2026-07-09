@@ -27,7 +27,7 @@
 ```
 app/
 ├── api/v1/
-│   ├── stocks.py        # 个股搜索、全景、资讯、事件
+│   ├── stocks.py        # 个股搜索、全景、资讯
 │   ├── news.py          # 全市场热点
 │   ├── analysis.py      # 概览、概念排行
 │   ├── ai.py            # 摘要、研判
@@ -39,7 +39,6 @@ app/
 ├── models/              # SQLAlchemy ORM
 │   ├── stock.py
 │   ├── news.py
-│   ├── event.py
 │   └── chain.py
 ├── schemas/             # Pydantic 请求/响应
 │   ├── stock.py
@@ -56,8 +55,7 @@ app/
 │   └── cninfo.py
 ├── analyzers/           # NLP分析
 │   ├── entity_extractor.py
-│   ├── sentiment.py
-│   └── event_detector.py
+│   └── sentiment.py
 ├── ai/                  # LLM调用
 │   ├── summarizer.py
 │   ├── judge.py
@@ -72,7 +70,7 @@ app/
 - 响应: `{"code": 0, "message": "success", "data": {...}}`
 
 ### 数据库规范
-- 表名复数: `news`, `stocks`, `events`
+- 表名复数: `news`, `stocks`
 - 主键: `id INTEGER PRIMARY KEY AUTOINCREMENT`
 - 时间: `TEXT` 存ISO8601，`created_at`, `updated_at`
 - JSON字段用于半结构化数据（SQLite存储为TEXT，用json()函数查询）
@@ -111,7 +109,6 @@ src/
 ├── components/
 │   ├── StockCard.vue      # 股票信息卡片
 │   ├── NewsList.vue       # 资讯列表
-│   ├── EventTimeline.vue  # 事件时间线
 │   └── SentimentBadge.vue # 情感标签
 ├── composables/           # 组合函数（替代store）
 │   ├── useStock.ts

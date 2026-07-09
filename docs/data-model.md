@@ -10,7 +10,6 @@
   content ─────→ 丢弃，替换为AI摘要
   实体提取  ───→ entities (JSON TEXT)
   情感分析  ───→ sentiment 字段
-  事件提取  ───→ events (JSON TEXT)
 ```
 
 每条资讯存储约 2~3KB，而非原始全文的 10~50KB。
@@ -88,7 +87,6 @@ CREATE TABLE IF NOT EXISTS news (
     sentiment       INTEGER,                       -- -1利空, 0中性, 1利好
     sentiment_score REAL,                          -- 0~1
     entities        TEXT,                          -- JSON: [{"type":"stock","code":"688981"}]
-    events          TEXT,                          -- JSON: [{"type":"performance","subtype":"pre_increase"}]
     tags            TEXT,                          -- JSON数组
     retention       TEXT DEFAULT 'normal',         -- normal(90天) / long_term(1年)
     created_at      TEXT DEFAULT (datetime('now')),
@@ -139,28 +137,7 @@ CREATE TABLE IF NOT EXISTS news_stocks (
 CREATE INDEX idx_news_stocks_code ON news_stocks(stock_code);
 ```
 
-### 6. events（事件）
-
-```sql
-CREATE TABLE IF NOT EXISTS events (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    event_type    TEXT NOT NULL,
-    event_subtype TEXT,
-    title         TEXT NOT NULL,
-    description   TEXT,
-    news_id       INTEGER REFERENCES news(id),
-    stock_codes   TEXT,                          -- JSON数组: ["688981","002049"]
-    impact        INTEGER,                       -- -1负面, 0中性, 1正面
-    impact_level  TEXT,                          -- high / medium / low
-    event_date    TEXT,                          -- YYYY-MM-DD
-    extra         TEXT,                          -- JSON
-    created_at    TEXT DEFAULT (datetime('now'))
-);
-
-CREATE INDEX idx_events_date ON events(event_date);
-```
-
-### 7. concepts（概念板块）
+### 6. concepts（概念板块）
 
 ```sql
 CREATE TABLE IF NOT EXISTS concepts (
@@ -187,23 +164,7 @@ SQLite中JSON存储为TEXT，用内置 `json()` 函数查询：
 -- 查询包含某股票的资讯
 SELECT * FROM news WHERE json_each.value = '688981',
        json_each(news.entities);
-
--- 按事件类型筛选
-SELECT * FROM events WHERE json_extract(extra, '$.amount') > 1000000;
 ```
-
----
-
-## 事件类型
-
-| 类型 | 子类型 | 说明 |
-|------|--------|------|
-| performance | pre_increase, pre_decrease, loss, turnaround | 业绩 |
-| merger | acquisition, restructuring, spin_off | 并购重组 |
-| equity | buyback, incentive, top_up, top_down | 股权变动 |
-| policy | subsidy, regulation, industry_plan | 政策 |
-| product | launch, patent, contract | 产品/技术 |
-| risk | violation, lawsuit, rating_down, penalty | 风险 |
 
 ---
 

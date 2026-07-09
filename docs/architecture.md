@@ -38,7 +38,7 @@ APScheduler   → Celery        （任务量大或需要分布式时）
 ## 模块划分
 
 ### API层 (`app/api/v1/`)
-- `stocks.py` — 个股搜索、全景、资讯、事件
+- `stocks.py` — 个股搜索、全景、资讯
 - `news.py` — 全市场热点
 - `analysis.py` — 概览、概念排行
 - `ai.py` — 摘要、趋势研判
@@ -53,7 +53,6 @@ APScheduler   → Celery        （任务量大或需要分布式时）
 ### 分析层 (`app/analyzers/`)
 - `entity_extractor.py` — 实体识别（股票代码/名称词典匹配）
 - `sentiment.py` — 情感分析（规则层关键词）
-- `event_detector.py` — 事件检测（模板匹配）
 
 ### AI层 (`app/ai/`)
 - `summarizer.py` — 资讯摘要生成（Claude API）
@@ -76,11 +75,11 @@ APScheduler 定时触发
     ↓
 采集器(httpx抓取→内存去重→重要度过滤)
     ↓
-分析器(实体识别→情感分析→事件检测)
+分析器(实体识别→情感分析)
     ↓
 AI摘要(Claude API，批量生成摘要)
     ↓
-写入SQLite(title+summary+entities+events+sentiment)
+写入SQLite(title+summary+entities+sentiment)
     ↓
 用户请求 → FastAPI → 前端展示
 ```

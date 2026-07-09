@@ -108,10 +108,10 @@ class BaseCollector(ABC):
             score += 0.3
 
         # 涉及重大事件关键词 +0.3
-        EVENT_KEYWORDS = {"并购", "重组", "收购", "业绩", "预增", "预减", "亏损",
-                          "增持", "减持", "回购", "涨停", "跌停", "处罚", "退市",
-                          "合同", "中标", "专利", "股权激励", "分红"}
-        if any(kw in title for kw in EVENT_KEYWORDS):
+        IMPORTANT_KEYWORDS = {"并购", "重组", "收购", "业绩", "预增", "预减", "亏损",
+                              "增持", "减持", "回购", "涨停", "跌停", "处罚", "退市",
+                              "合同", "中标", "专利", "股权激励", "分红"}
+        if any(kw in title for kw in IMPORTANT_KEYWORDS):
             score += 0.3
 
         # 来源权重：公告 > 新闻 > 社交

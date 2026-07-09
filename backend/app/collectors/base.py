@@ -10,7 +10,7 @@ logger = structlog.get_logger()
 
 IMPORTANCE_THRESHOLD = 0.5
 
-EVENT_KEYWORDS = {
+IMPORTANT_KEYWORDS = {
     "并购", "重组", "收购", "业绩", "预增", "预减", "亏损",
     "增持", "减持", "回购", "涨停", "跌停", "处罚", "退市",
     "合同", "中标", "专利", "股权激励", "分红",
@@ -97,7 +97,7 @@ class BaseCollector(ABC):
             score += 0.3
 
         # 重大事件关键词
-        if any(kw in title for kw in EVENT_KEYWORDS):
+        if any(kw in title for kw in IMPORTANT_KEYWORDS):
             score += 0.3
 
         # 来源权重

@@ -7,12 +7,11 @@
 ## 处理流水线
 
 ```
-重要资讯(内存) → 预处理 → 实体识别 → 情感分析 → 事件检测 → 关联计算 → 整合结果入库
-                                                                            ↓
-                                                                    title + summary
-                                                                    + entities + events
-                                                                    + sentiment
-                                                                    （不存原始content）
+重要资讯(内存) → 预处理 → 实体识别 → 情感分析 → 关联计算 → 整合结果入库
+                                                                    ↓
+                                                            title + summary
+                                                            + entities + sentiment
+                                                            （不存原始content）
 ```
 
 ## 实体识别
@@ -73,50 +72,6 @@ class SentimentResult:
 - 中等场景 → 模型层
 - 复杂场景（反讽、隐含、多事件混合）→ LLM层
 
-## 事件检测
-
-### 事件分类体系
-```
-performance/
-├── pre_increase    业绩预增
-├── pre_decrease    业绩预减
-├── loss            业绩亏损
-└── turnaround      业绩扭亏
-
-merger/
-├── acquisition     收购
-├── restructuring   重组
-└── spin_off        分拆
-
-equity/
-├── buyback         回购
-├── incentive       股权激励
-├── top_up          增持
-└── top_down        减持
-
-policy/
-├── subsidy         补贴
-├── regulation      监管
-└── industry_plan   产业规划
-
-risk/
-├── violation       违规
-├── lawsuit         诉讼
-├── rating_down     评级下调
-└── penalty         处罚
-```
-
-### 检测方案
-```python
-class EventDetector:
-    async def detect(self, text: str, entities: list) -> list[Event]:
-        events = []
-        # 1. 模板匹配: "公司预计XX年度净利润同比增长XX%" → pre_increase
-        # 2. 关键词+实体组合: "增持" + 大股东实体 → top_up
-        # 3. LLM辅助: 复杂公告的事件提取
-        return events
-```
-
 ## 关联计算
 
 ### 股票-资讯关联
@@ -142,5 +97,4 @@ def calculate_relevance(news_entity: str, stock: Stock) -> float:
 | concept_dict.json | 概念术语及同义词 | 每周 |
 | sentiment_positive.json | 正面情感词 | 每月 |
 | sentiment_negative.json | 负面情感词 | 每月 |
-| event_templates.json | 事件模板 | 每月 |
 | industry_chain.json | 产业链关系 | 每月 |

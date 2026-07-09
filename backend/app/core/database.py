@@ -57,7 +57,6 @@ CREATE TABLE IF NOT EXISTS news (
     sentiment       INTEGER,
     sentiment_score REAL,
     entities        TEXT,
-    events          TEXT,
     tags            TEXT,
     retention       TEXT DEFAULT 'normal',
     created_at      TEXT DEFAULT (datetime('now')),
@@ -78,22 +77,6 @@ CREATE TABLE IF NOT EXISTS news_stocks (
     UNIQUE(news_id, stock_code)
 );
 CREATE INDEX IF NOT EXISTS idx_news_stocks_code ON news_stocks(stock_code);
-
-CREATE TABLE IF NOT EXISTS events (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    event_type    TEXT NOT NULL,
-    event_subtype TEXT,
-    title         TEXT NOT NULL,
-    description   TEXT,
-    news_id       INTEGER REFERENCES news(id),
-    stock_codes   TEXT,
-    impact        INTEGER,
-    impact_level  TEXT,
-    event_date    TEXT,
-    extra         TEXT,
-    created_at    TEXT DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_events_date ON events(event_date);
 
 CREATE TABLE IF NOT EXISTS concepts (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
