@@ -347,7 +347,7 @@ async def _cleanup_expired():
 
         # 删过期资讯
         cursor = await db.execute(
-            "DELETE FROM news WHERE retention = 'normal' AND created_at < datetime('now', '-90 days')"
+            "DELETE FROM news WHERE retention = 'normal' AND created_at < datetime('now', '-14 days')"
         )
         count = cursor.rowcount
 
