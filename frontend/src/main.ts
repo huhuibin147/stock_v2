@@ -13,6 +13,7 @@ const router = createRouter({
     { path: "/news", component: () => import("./views/NewsList.vue") },
     { path: "/news/:id", component: () => import("./views/NewsDetail.vue") },
     { path: "/xueqiu", component: () => import("./views/XueqiuRanking.vue") },
+    { path: "/quant", component: () => import("./views/QuantRecommend.vue") },
     { path: "/chains", component: () => import("./views/ChainList.vue") },
     { path: "/supply-chain", component: () => import("./views/SupplyChainList.vue") },
     { path: "/supply-chain/:id", component: () => import("./views/SupplyChainDetail.vue") },
