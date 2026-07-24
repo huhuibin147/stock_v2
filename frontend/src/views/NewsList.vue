@@ -168,7 +168,12 @@ function sentimentText(s?: number | null) {
   return "中性";
 }
 function sourceLabel(s: string) {
-  const map: Record<string, string> = { eastmoney: "东方财富", ths: "同花顺", sina: "新浪", cninfo: "巨潮公告" };
+  const map: Record<string, string> = {
+    eastmoney: "东方财富",
+    ths: "同花顺",
+    sina: "新浪",
+    cninfo: "巨潮公告",
+  };
   return map[s] || s;
 }
 function formatTime(t?: string | null) {

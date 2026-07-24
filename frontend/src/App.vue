@@ -10,6 +10,7 @@
         <nav class="nav">
           <router-link to="/" class="nav-link">首页</router-link>
           <router-link to="/news" class="nav-link">资讯</router-link>
+          <router-link to="/xueqiu" class="nav-link">热度</router-link>
           <router-link to="/stocks" class="nav-link">公司</router-link>
           <router-link to="/admin" class="nav-link">管理</router-link>
         </nav>
@@ -18,6 +19,7 @@
       <div class="mobile-nav" v-if="menuOpen" @click="menuOpen = false">
         <router-link to="/" class="mobile-link">首页</router-link>
         <router-link to="/news" class="mobile-link">资讯</router-link>
+        <router-link to="/xueqiu" class="mobile-link">热度</router-link>
         <router-link to="/stocks" class="mobile-link">公司</router-link>
         <router-link to="/admin" class="mobile-link">管理</router-link>
       </div>

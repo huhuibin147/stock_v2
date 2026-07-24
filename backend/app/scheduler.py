@@ -267,6 +267,47 @@ async def _run_collect_cninfo():
         await collector.close()
 
 
+async def _run_collect_xueqiu():
+    """采集雪球热度数据（讨论、交易、关注）"""
+    from app.collectors.xueqiu import XueqiuCollector, XueqiuDealCollector, XueqiuFollowCollector
+    from app.services.news_service import save_news
+
+    collectors = [
+        XueqiuCollector(),
+        XueqiuDealCollector(),
+        XueqiuFollowCollector(),
+    ]
+
+    for collector in collectors:
+        try:
+            raw_items = await collector.collect(max_pages=1)
+            for item in raw_items:
+                news_data = {
+                    "source": item.source,
+                    "source_id": item.source_id,
+                    "title": item.title,
+                    "content": item.content or "",
+                    "summary": item.title,
+                    "key_points": [],
+                    "url": item.url,
+                    "published_at": item.published_at.isoformat() if item.published_at else None,
+                    "category": item.category,
+                    "importance_score": item.extra.get("importance_score", 0.5),
+                    "sentiment": 0,
+                    "sentiment_score": 0,
+                    "entities": [],
+                    "tags": [],
+                }
+                stock_codes = item.extra.get("stock_codes", [])
+                news_id = await save_news(news_data, stock_codes)
+                if news_id:
+                    logger.debug("xueqiu_saved", id=news_id, source=item.source, title=item.title[:30])
+        except Exception as e:
+            logger.error("collect_xueqiu_failed", source=collector.source, error=str(e))
+        finally:
+            await collector.close()
+
+
 async def _import_stock_profiles():
     """导入公司概况信息"""
     from app.tasks.import_stocks import import_stock_profiles
@@ -334,7 +375,7 @@ async def _import_financials():
 
 
 async def _cleanup_expired():
-    """清理过期资讯（90天）及孤儿关联"""
+    """清理过期资讯及孤儿关联"""
     from app.core.database import get_db
 
     db = await get_db()
@@ -345,22 +386,28 @@ async def _cleanup_expired():
         )
         orphan = cursor.rowcount
 
-        # 删过期资讯
+        # 删过期资讯（普通资讯保留14天）
         cursor = await db.execute(
             "DELETE FROM news WHERE retention = 'normal' AND created_at < datetime('now', '-14 days')"
         )
         count = cursor.rowcount
 
+        # 清理雪球热度数据（保留3天，因为热度数据更新频繁）
+        cursor_xueqiu = await db.execute(
+            "DELETE FROM news WHERE source LIKE 'xueqiu%' AND created_at < datetime('now', '-3 days')"
+        )
+        xueqiu_count = cursor_xueqiu.rowcount
+
         # 再清一次关联表
-        if count > 0:
+        if count > 0 or xueqiu_count > 0:
             cursor2 = await db.execute(
                 "DELETE FROM news_stocks WHERE news_id NOT IN (SELECT id FROM news)"
             )
             orphan += cursor2.rowcount
 
         await db.commit()
-        if count > 0 or orphan > 0:
-            logger.info("cleanup_done", deleted=count, orphan=orphan)
+        if count > 0 or xueqiu_count > 0 or orphan > 0:
+            logger.info("cleanup_done", deleted=count, xueqiu_deleted=xueqiu_count, orphan=orphan)
     finally:
         await db.close()
 
@@ -389,6 +436,12 @@ def start_scheduler():
         _run_collect_cninfo,
         IntervalTrigger(minutes=30),
         id="collect_cninfo",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        _run_collect_xueqiu,
+        IntervalTrigger(minutes=30),
+        id="collect_xueqiu",
         replace_existing=True,
     )
     scheduler.add_job(

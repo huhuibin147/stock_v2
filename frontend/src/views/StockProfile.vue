@@ -9,6 +9,9 @@
     <div class="card stock-card">
       <div class="stock-header">
         <h1>{{ profile.stock.name }} <span class="code">{{ profile.stock.code }}.{{ profile.stock.market }}</span></h1>
+        <a :href="`https://xueqiu.com/S/${profile.stock.market}${profile.stock.code}`" target="_blank" class="xueqiu-btn" title="在雪球查看">
+          📊 雪球
+        </a>
       </div>
       <div v-if="profile.stock.core_business" class="core-business">
         {{ profile.stock.core_business }}
@@ -356,9 +359,31 @@ watch(() => route.params.code, (c) => { if (c) loadProfile(c as string); });
   padding: 60px 0;
   color: var(--text-secondary);
 }
+.stock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
 .stock-header h1 {
   font-size: 24px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
+}
+.xueqiu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: #ff6b00;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.xueqiu-btn:hover {
+  background: #e55d00;
 }
 .code {
   font-size: 14px;

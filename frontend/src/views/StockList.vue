@@ -40,7 +40,10 @@
             tag="tr"
             class="stock-row"
           >
-            <td class="code-cell">{{ s.code }}.{{ s.market }}</td>
+            <td class="code-cell">
+              {{ s.code }}.{{ s.market }}
+              <a :href="`https://xueqiu.com/S/${s.market}${s.code}`" target="_blank" class="xueqiu-icon" title="雪球" @click.stop>📊</a>
+            </td>
             <td class="name-cell">{{ s.name }}</td>
             <td class="num">{{ s.last_price != null ? s.last_price.toFixed(2) : '-' }}</td>
             <td class="num" :class="pctClass(s.pct_change)">{{ s.pct_change != null ? (s.pct_change > 0 ? '+' : '') + s.pct_change.toFixed(2) + '%' : '-' }}</td>
@@ -255,6 +258,16 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .stock-row:hover { background: var(--bg-secondary); }
 .stock-row td { border-bottom: 1px solid var(--border-light); }
 .code-cell { font-family: "SF Mono", monospace; font-size: 12px; color: var(--primary); font-weight: 600; white-space: nowrap; }
+.xueqiu-icon {
+  font-size: 12px;
+  text-decoration: none;
+  margin-left: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.stock-row:hover .xueqiu-icon {
+  opacity: 1;
+}
 .name-cell { font-weight: 500; white-space: nowrap; }
 .biz-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
 .industry-cell { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
